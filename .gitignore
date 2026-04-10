@@ -1,0 +1,4 @@
+node_modules
+.env
+RestApi/node_modules
+RestApi/.env
