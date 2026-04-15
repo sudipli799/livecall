@@ -9,8 +9,14 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await axiosInstance.post(
         ENDPOINTS.REGISTER,
-        data
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
+
       return response.data;
     } catch (error) {
       return thunkAPI.rejectWithValue(

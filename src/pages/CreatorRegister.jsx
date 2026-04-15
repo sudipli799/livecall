@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../redux/slices/authSlice";
+import Cropper from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 
 const CreatorRegister = () => {
 
@@ -14,6 +16,67 @@ const CreatorRegister = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+
+  const [profileImage, setProfileImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setPreviewImage(imageUrl);
+      setShowCropModal(true); // 👉 crop open
+    }
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const getCroppedImg = async (imageSrc, crop) => {
+  const image = new Image();
+  image.src = imageSrc;
+
+  return new Promise((resolve) => {
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+
+        ctx.drawImage(
+          image,
+          crop.x,
+          crop.y,
+          crop.width,
+          crop.height,
+          0,
+          1,
+          crop.width,
+          crop.height
+        );
+
+        canvas.toBlob((blob) => {
+          const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
+          resolve(file);
+        }, "image/jpeg");
+      };
+    });
+  };
+
+  const handleCropSave = async () => {
+    const croppedImage = await getCroppedImg(previewImage, croppedAreaPixels);
+
+    setProfileImage(croppedImage);
+    setPreviewImage(URL.createObjectURL(croppedImage));
+    setShowCropModal(false);
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -102,9 +165,24 @@ const CreatorRegister = () => {
   if (!validatePassword(formData.password)) return;
 
   try {
-    await dispatch(registerUser(formData)).unwrap();
+    const data = new FormData();
 
-    // small delay ensures redux state updated
+    // text fields
+    data.append("name", formData.name);
+    data.append("username", formData.username);
+    data.append("email", formData.email);
+    data.append("password", formData.password);
+    data.append("role", formData.role);
+    data.append("gender", formData.gender);
+    data.append("country", formData.country);
+
+    // 👇 IMPORTANT: image file
+    if (profileImage) {
+      data.append("profileImage", profileImage);
+    }
+
+    await dispatch(registerUser(data)).unwrap();
+
     setTimeout(() => {
       navigate("/creator/dashboard", { replace: true });
     }, 100);
@@ -229,6 +307,35 @@ const CreatorRegister = () => {
                 <option value="Australia">Australia</option>
               </select>
 
+              <div style={styles.imageUploadCard}>
+                <label style={styles.imageLabel}>📸 Profile Image</label>
+
+                <label style={styles.uploadArea}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={styles.fileInput}
+                  />
+
+                  <div style={styles.uploadInner}>
+                    <div style={styles.uploadIcon}>⬆️</div>
+                    <div style={styles.uploadText}>Click to upload image</div>
+                    <div style={styles.uploadSubText}>PNG, JPG up to 5MB</div>
+                  </div>
+                </label>
+
+                {previewImage && (
+                  <div style={styles.previewWrapper}>
+                    <img
+                      src={previewImage}
+                      alt="preview"
+                      style={styles.previewImage}
+                    />
+                  </div>
+                )}
+              </div>
+
 
               {/* PASSWORD FIELD */}
               <div style={styles.passwordWrapper}>
@@ -276,6 +383,37 @@ const CreatorRegister = () => {
               Already have an account? <Link to="/login">Login</Link>
             </p>
           </div>
+
+          {showCropModal && (
+            <div style={styles.cropModal}>
+              <div style={styles.cropContainer}>
+                <Cropper
+                  image={previewImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={4/3} // square (profile pic)
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              </div>
+
+              <div style={styles.cropControls}>
+                <input
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(e.target.value)}
+                />
+
+                <button onClick={handleCropSave}>Save</button>
+                <button onClick={() => setShowCropModal(false)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </>
@@ -353,6 +491,106 @@ const styles = {
     fontSize: "18px",
   },
   footerText: { marginTop: "15px", textAlign: "center" },
+
+  cropModal: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.8)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+
+  cropContainer: {
+    position: "relative",
+    width: "300px",
+    height: "300px",
+    background: "#000",
+  },
+
+  cropControls: {
+    marginTop: "10px",
+    display: "flex",
+    gap: "10px",
+  },
+  previewImage:{
+    width: '30%',
+    marginTop:'20px'
+  },
+
+  imageUploadCard: {
+    padding: "18px",
+    borderRadius: "14px",
+    background: "#ffffff",
+    border: "1px solid #e6e6e6",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+    maxWidth: "420px",
+  },
+
+  imageLabel: {
+    fontSize: "15px",
+    fontWeight: "600",
+    marginBottom: "10px",
+    display: "block",
+    color: "#222",
+  },
+
+  uploadArea: {
+    display: "block",
+    border: "2px dashed #cbd5e1",
+    borderRadius: "12px",
+    padding: "20px",
+    textAlign: "center",
+    cursor: "pointer",
+    transition: "0.3s",
+    background: "#f8fafc",
+  },
+
+  uploadInner: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    alignItems: "center",
+  },
+
+  uploadIcon: {
+    fontSize: "22px",
+  },
+
+  uploadText: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#334155",
+  },
+
+  uploadSubText: {
+    fontSize: "12px",
+    color: "#64748b",
+  },
+
+  fileInput: {
+    display: "none",
+  },
+
+  previewWrapper: {
+    marginTop: "12px",
+    display: "flex",
+    justifyContent: "center",
+  },
+
+  previewImage: {
+    width: "150px",
+    borderRadius: "10%",
+    objectFit: "cover",
+    border: "3px solid #3b82f6",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+  },
+
 };
 
 export default CreatorRegister;

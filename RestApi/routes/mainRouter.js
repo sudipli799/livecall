@@ -4,16 +4,18 @@ const controller = require("../controllers/mainController");
 const menu = require("../controllers/menuController");
 // const authMiddleware = require("../middleware/authMiddleware");
 const { protect } = require("../middleware/authMiddleware");
+const upload  = require("../middleware/upload");
 
 const mux = require("../config/mux");
 
-router.post("/register", controller.register);
+router.post("/register", upload.single("profileImage"), controller.register);
 router.post("/login", controller.login);
 
 router.post("/go-live", protect, controller.toggleLiveStatus);
 router.get("/get_live_status", protect, controller.getLiveStatus);
 
 router.get("/users", controller.getUsers);
+router.get("/liveusers", controller.getLiveUsers);
 router.get("/user/:id", controller.getUserDetail);
 router.delete("/users/:id", controller.deleteUser);
 router.post("/updatetoken", protect, controller.setDailyLimit);

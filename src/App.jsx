@@ -28,6 +28,10 @@ import LiveViewer from "./pages/LiveViewer";
 import TipMenu from "./pages/TipMenu";
 import TipsHistory from "./pages/TipHistory";
 import PrivateMenu from "./pages/PrivateMenu";
+import LiveUser from "./pages/LiveUser";
+import PremiumUser from "./pages/PremiumUser";
+import NudeChat from "./pages/NudeChat";
+import Creators from "./pages/Creators";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -44,6 +48,10 @@ function App() {
             <main style={{ minHeight: "80vh" }}>
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/liveuser" element={<LiveUser />} />
+                <Route path="/premiumuser" element={<PremiumUser/>} />
+                <Route path="/nudechat" element={<NudeChat/>} />
+                <Route path="/creator" element={<Creators/>} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />

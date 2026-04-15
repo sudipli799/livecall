@@ -18,16 +18,23 @@ exports.register = async (req, res) => {
   try {
     const { name, username, email, password, role, gender, country } = req.body;
 
-    // 🔍 Check if email exists
+    // 🔍 check email
     const exist = await User.findOne({ email });
     if (exist) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // 🔐 Hash password
+    // 🔐 hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 👤 Create user
+    // ☁️ S3 image
+    let profileImage = "";
+
+    if (req.file && req.file.location) {
+      profileImage = req.file.location; // ✅ S3 URL
+    }
+
+    // 👤 create user
     const user = await User.create({
       name,
       username,
@@ -36,25 +43,23 @@ exports.register = async (req, res) => {
       role,
       gender: gender || "others",
       country: country || "India",
-      profileImage: "",
+      profileImage,
       wallet: "0",
       vendor_id: "",
       liveStatus: 0,
       registerDate: new Date(),
     });
 
-    // 🎟 Generate JWT Token (same as login)
+    // 🎟 JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // ❌ Remove password from response
     const userData = user.toObject();
     delete userData.password;
 
-    // ✅ Send response
     res.status(201).json({
       message: "Registered Successfully",
       token,
@@ -62,6 +67,7 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -397,6 +403,38 @@ exports.getUsers = async (req, res) => {
       indiaUsers,
       usaUsers,
       randomUsers,
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getLiveUsers = async (req, res) => {
+  try {
+
+    // ✅ Common filter
+    const baseFilter = {
+      liveStatus: 1,
+      gender: "female",
+    };
+
+    
+    // 🎲 4. Random Live Users
+    const liveUsers = await User.aggregate([
+      {
+        $match: baseFilter,
+      },
+      {
+        $sample: { size: 50 }, // jitne random chahiye utna change kar
+      },
+      {
+        $project: { password: 0 },
+      },
+    ]);
+
+    res.json({
+      liveUsers,
     });
 
   } catch (error) {

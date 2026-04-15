@@ -249,7 +249,7 @@ const menuItems = (mobile = false) => (
     <li className="nav-item">
       <Link
         className="nav-link text-danger fw-semibold"
-        to="/live"
+        to="/liveuser"
       >
         🔴 LIVE SEX
       </Link>
@@ -258,16 +258,16 @@ const menuItems = (mobile = false) => (
     <li className="nav-item">
       <Link
         className="nav-link text-warning fw-semibold"
-        to="/"
+        to="/premiumuser"
       >
-        👑 PREMIUM VIDEOS
+        👑 PREMIUM USER
       </Link>
     </li>
 
     <li className="nav-item">
       <Link
         className="nav-link text-white fw-semibold"
-        to="/"
+        to="/nudechat"
       >
         💬 NUDE CHAT
       </Link>
@@ -276,7 +276,7 @@ const menuItems = (mobile = false) => (
     <li className="nav-item">
       <Link
         className="nav-link text-white fw-semibold"
-        to="/category"
+        to="#"
       >
         ☰ CATEGORIES
       </Link>
@@ -285,9 +285,9 @@ const menuItems = (mobile = false) => (
     <li className="nav-item">
       <Link
         className="nav-link text-white fw-semibold"
-        to="/"
+        to="/creator"
       >
-        ⭐ PORNSTARS
+        ⭐ OUR CREATOR
       </Link>
     </li>
 
@@ -300,23 +300,23 @@ const menuItems = (mobile = false) => (
       </Link>
     </li>
 
-    <li className="nav-item">
+    {/* <li className="nav-item">
       <Link
         className="nav-link text-white fw-semibold"
         to="/"
       >
         📷 PHOTOS
       </Link>
-    </li>
+    </li> */}
 
-    <li className="nav-item">
+    {/* <li className="nav-item">
       <Link
         className="nav-link text-white fw-semibold"
         to="/"
       >
         ⬆️ UPLOAD
       </Link>
-    </li>
+    </li> */}
   </>
 );
 

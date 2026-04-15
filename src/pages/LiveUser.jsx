@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+
 const COUNTRIES = ["India", "USA", "UK", "Canada", "Germany", "France"];
 
-export default function Home() {
+export default function LiveUser() {
   const [liveUsers, setLiveUsers] = useState([]);
-  const [indiaUsers, setIndiaUsers] = useState([]);
-  const [usaUsers, setUsaUsers] = useState([]);
-  const [randomUsers, setRandomUsers] = useState([]);
+  
 
   useEffect(() => {
     fetchUsers();
@@ -16,12 +15,10 @@ export default function Home() {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/users");
+      const res = await axios.get("http://localhost:5000/api/liveusers");
 
       setLiveUsers(res.data.liveUsers || []);
-      setIndiaUsers(res.data.indiaUsers || []);
-      setUsaUsers(res.data.usaUsers || []);
-      setRandomUsers(res.data.randomUsers || []);
+      
     } catch (err) {
       console.log(err);
     }
@@ -38,11 +35,7 @@ export default function Home() {
         <MobileHeader />
 
         <VideoSection title="🔴 Live" users={liveUsers} />
-        <VideoSection title="🇮🇳 Indian" users={indiaUsers} />
-        <VideoSection title="🇺🇸 USA" users={usaUsers} />
-        <VideoSection title="⭐ Relevant" users={randomUsers} />
-
-        <LiveModelsRow users={liveUsers} />
+        
       </div>
 
       {/* DESKTOP */}
@@ -94,29 +87,14 @@ export default function Home() {
                 <h3 className="fw-bold mb-0">
                   xMaster Live Cam Indian Porn Videos
                 </h3>
-                <span className="text-muted">363.7K Results</span>
+                {/* <span className="text-muted">363.7K Results</span> */}
               </div>
 
-              {/* <div className="d-flex gap-4 mt-2 fw-semibold">
-                <span className="text-danger border-bottom border-danger pb-2">
-                  Free Videos
-                </span>
-                <span className="text-muted">Short videos</span>
-                <span className="text-muted">👑 Premium Videos</span>
-                <span className="text-muted">Photos</span>
-              </div> */}
-
-              {/* <div className="d-flex gap-2 mt-3">
-                <button className="btn btn-light btn-sm">💬 Live Chat</button>
-                <button className="btn btn-light btn-sm">Best Videos</button>
-              </div> */}
+              
             </div>
 
-            <DesktopSection title="🔴 Live Creator" users={liveUsers} live />
-            <DesktopSection title="🇮🇳 Indian" users={indiaUsers} country="India" />
-            <DesktopSection title="🇺🇸 USA" users={usaUsers} country="USA" />
-            <DesktopSection title="⭐ Relevant" users={randomUsers} />
-
+            <DesktopSection title="🔴 Live" users={liveUsers} live />
+           
             <LiveModelsRow users={liveUsers} />
               <div className="mt-4 bg-light p-3 rounded">
                 <div className="d-flex justify-content-between align-items-center mb-2">
