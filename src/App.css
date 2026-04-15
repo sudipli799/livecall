@@ -66,3 +66,23 @@ main {
 .read-the-docs {
   color: #888;
 }
+
+.loader-wrapper {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+}
+
+.logo-loader {
+  font-size: 32px;
+  font-weight: bold;
+  color: #ff3b3b;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1.05); }
+}

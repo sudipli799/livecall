@@ -32,6 +32,7 @@ import LiveUser from "./pages/LiveUser";
 import PremiumUser from "./pages/PremiumUser";
 import NudeChat from "./pages/NudeChat";
 import Creators from "./pages/Creators";
+import Profile from "./components/Profile";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -58,11 +59,11 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/creator-register" element={<CreatorRegister />} />
                 <Route path="/category" element={<Category />} />
-                <Route path="/live" element={<Live />} />
+                {/* <Route path="/live" element={<Live />} /> */}
                 <Route path="/cr" element={<Agoracreator />} />
                 <Route path="/uc" element={<Agorauser />} />
                 <Route path="/live/:id" element={<Live />} />
-                <Route path="/live-viewer" element={<LiveViewer />} />
+                <Route path="/live-viewer" element={<Profile />} />
 
               </Routes>
             </main>

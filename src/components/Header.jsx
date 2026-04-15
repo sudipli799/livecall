@@ -34,7 +34,7 @@ function Header() {
           </button>
 
           <span className="fw-bold text-danger fs-4">
-            XHAMSTER
+            xMASTER Live
           </span>
         </div>
 
@@ -43,7 +43,7 @@ function Header() {
           <div className="input-group">
             <input
               className="form-control rounded-pill"
-              placeholder="xhamster live cam indian"
+              placeholder="xMaster live cam indian"
             />
             <span className="input-group-text bg-white border-0">
               <FaSearch />

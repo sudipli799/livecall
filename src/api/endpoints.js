@@ -2,6 +2,7 @@ const ENDPOINTS = {
   REGISTER: "/register",
   LOGIN: "/login",
   USERS: "/users",
+  LIVEUSER: "/liveusers",
   GOLIVE: "/go-live",
   HOME: "/users",
   LIVESTATUS: "/get_live_status",

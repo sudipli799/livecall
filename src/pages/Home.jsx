@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+// import axios from "axios";
+import axiosInstance from "../api/axiosInstance";
+import ENDPOINTS  from "../api/endpoints";
 
 const COUNTRIES = ["India", "USA", "UK", "Canada", "Germany", "France"];
 
@@ -10,23 +13,50 @@ export default function Home() {
   const [usaUsers, setUsaUsers] = useState([]);
   const [randomUsers, setRandomUsers] = useState([]);
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/users");
+      setLoading(true);
 
-      setLiveUsers(res.data.liveUsers || []);
-      setIndiaUsers(res.data.indiaUsers || []);
-      setUsaUsers(res.data.usaUsers || []);
-      setRandomUsers(res.data.randomUsers || []);
-    } catch (err) {
-      console.log(err);
+      const res = await axiosInstance.get(ENDPOINTS.USERS);
+
+      if (res?.data) {
+        setLiveUsers(res.data.liveUsers || []);
+        setIndiaUsers(res.data.indiaUsers || []);
+        setUsaUsers(res.data.usaUsers || []);
+        setRandomUsers(res.data.randomUsers || []);
+      }
+
+    } catch (error) {
+      console.log("Error fetching users", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (loading) {
+  return (
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0f172a",
+        color: "#fff"
+      }}
+    >
+      <div className="spinner-border text-danger" style={{ width: 60, height: 60 }} />
+      <p style={{ marginTop: 15, fontSize: 16 }}>Loading Live Creators...</p>
+    </div>
+  );
+}
   return (
     <div className="container-fluid px-1 mt-1">
 

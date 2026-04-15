@@ -6,8 +6,7 @@ const Footer = () => {
       <div className="container">
         <div className="row gy-4">
 
-          {/* BRAND */}
-          <div className="col-6 col-md-3">
+          {/* <div className="col-6 col-md-3">
             <h6 className="fw-bold">MidnightvibeX</h6>
             <ul className="list-unstyled">
               <li><a href="/about" className="text-muted text-decoration-none">About Us</a></li>
@@ -16,10 +15,9 @@ const Footer = () => {
               <li><a href="/creators" className="text-muted text-decoration-none">Creator&apos;s Blog</a></li>
               <li><a href="/advertising" className="text-muted text-decoration-none">Advertising</a></li>
             </ul>
-          </div>
+          </div> */}
 
-          {/* HELP */}
-          <div className="col-6 col-md-3">
+          {/* <div className="col-6 col-md-3">
             <h6 className="fw-bold">Help & Support</h6>
             <ul className="list-unstyled">
               <li><a href="/faq" className="text-muted text-decoration-none">FAQ</a></li>
@@ -28,10 +26,9 @@ const Footer = () => {
               <li><a href="/content-removal" className="text-muted text-decoration-none">Content Removal</a></li>
               <li><a href="/feedback" className="text-muted text-decoration-none">Feedback</a></li>
             </ul>
-          </div>
+          </div> */}
 
-          {/* LEGAL */}
-          <div className="col-6 col-md-3">
+          {/* <div className="col-6 col-md-3">
             <h6 className="fw-bold">Legal</h6>
             <ul className="list-unstyled">
               <li><a href="/terms" className="text-muted text-decoration-none">Terms & Conditions</a></li>
@@ -45,10 +42,9 @@ const Footer = () => {
               </li>
               <li><a href="/trust-safety" className="text-muted text-decoration-none">Trust & Safety</a></li>
             </ul>
-          </div>
+          </div> */}
 
-          {/* MONETIZE */}
-          <div className="col-6 col-md-3">
+          {/* <div className="col-6 col-md-3">
             <h6 className="fw-bold">Earn with Us</h6>
             <p className="small text-muted mb-2">
               Start earning by sharing exclusive content with your fans.
@@ -75,7 +71,7 @@ const Footer = () => {
                 <i className="bi bi-telegram"></i>
               </a>
             </div>
-          </div>
+          </div> */}
 
         </div>
 
