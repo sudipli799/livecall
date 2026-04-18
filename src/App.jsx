@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import Offline from "./pages/Offline";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
@@ -56,6 +58,25 @@ import AgentAddUser from "./pages/agent/AgentAddUser";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  if (!isOnline) {
+    return <Offline />;
+  }
 
   return (
     <Routes>
