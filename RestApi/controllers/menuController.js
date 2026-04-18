@@ -1,9 +1,62 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-token");
-const { Menu, MyTip, PrivateShow, Wallet, Withdrawal } = require("../models/TipModel");
+const { Menu, MyTip, PrivateShow, Wallet, Withdrawal, Setting  } = require("../models/TipModel");
 const User = require("../models/MainModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+
+
+
+
+// SAVE OR UPDATE (UPSERT)
+exports.saveSetting = async (req, res) => {
+  try {
+    const data = req.body;
+
+    // 🔥 UPSERT (create if not exist, update if exist)
+    const setting = await Setting.findOneAndUpdate(
+      {},          // empty filter = single global document
+      data,
+      {
+        new: true,
+        upsert: true,   // create if not exists
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Settings saved successfully",
+      data: setting,
+    });
+
+  } catch (error) {
+    console.log("Save Setting Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+
+exports.getSetting = async (req, res) => {
+  try {
+    const setting = await Setting.findOne();
+
+    return res.status(200).json({
+      success: true,
+      data: setting || {}, // if no record, return empty object
+    });
+
+  } catch (error) {
+    console.log("Get Setting Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 
 /*
@@ -1216,7 +1269,6 @@ exports.admindashboard = async (req, res) => {
     const totalRevenue =
       totalWallet +
       totalCommission +
-      totalTips +
       totalWithdrawal;
 
     /*
@@ -1337,3 +1389,5 @@ exports.admindashboard = async (req, res) => {
     });
   }
 };
+
+

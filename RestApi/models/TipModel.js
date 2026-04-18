@@ -206,6 +206,37 @@ const withdrawalSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const settingSchema = new mongoose.Schema(
+  {
+    commission: Number,
+    minWithdraw: Number,
+    maxDaily: Number,
+    maintenance: Boolean,
+
+    ownerName: String,
+    companyName: String,
+    email: String,
+    phone: String,
+    domain: String,
+
+    privacyPolicy: String,
+    refundPolicy: String,
+    settlementPolicy: String,
+
+    aboutUs: String,
+
+    userTerms: String,
+    creatorTerms: String,
+
+    instagram: String,
+    facebook: String,
+    twitter: String,
+  },
+  { timestamps: true }
+);
+
+
+
 
 
 
@@ -214,6 +245,7 @@ const MyTip = mongoose.model("Mytip", myTipSchema);
 const PrivateShow = mongoose.model("PrivateShow", PrivateShowSchema);
 const Wallet = mongoose.model("Wallet", walletSchema);
 const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
+const Setting = mongoose.model("Setting", settingSchema);
 
 module.exports = {
   Menu,
@@ -221,4 +253,5 @@ module.exports = {
   PrivateShow,
   Wallet,
   Withdrawal,
+  Setting,
 };

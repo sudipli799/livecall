@@ -28,7 +28,7 @@ export default function AdminSidebar() {
       ],
     },
     { icon: "🏦", label: "Withdraw", path: "/admin/withdraw" },
-    // { icon: "🔴", label: "Live", path: "/admin/live" },
+    { icon: "⚙️", label: "Settings", path: "/admin/setting" },
   ];
 
   // ✅ ROLE CHECK

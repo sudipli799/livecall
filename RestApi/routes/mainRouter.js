@@ -42,6 +42,8 @@ router.get("/withdrawal-history/:user_id", menu.getWithdrawalHistory);
 router.get("/admin-withdrawal-history", menu.getAdminWithdrawalHistory);
 router.put("/update-withdrawal/:id/:status", menu.updateWithdrawalStatus);
 router.get("/admindashboard", menu.admindashboard);
+router.post("/settings/save", menu.saveSetting);
+router.get("/settings/get", menu.getSetting);
 
 // Agent
 router.get("/agentuser/:role/:agent_id", controller.allagentactiveuser);

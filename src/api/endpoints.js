@@ -27,6 +27,8 @@ const ENDPOINTS = {
   ADMINWITHDRAWALREQUEST: "/admin-withdrawal-history",
   UPDATEWITHDRAWAL: "/update-withdrawal",
   ADMINDASHBOARD: "/admindashboard",
+  SAVESETTING: "/settings/save",
+  GETSETTING: "/settings/get",
 
   AGENTUSER: "/agentuser",
   AGENTLIVEUSER: "/agentliveuser",
