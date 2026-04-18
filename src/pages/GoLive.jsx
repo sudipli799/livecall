@@ -403,15 +403,15 @@ useEffect(() => {
           </div>
 
           {/* BODY */}
-          <div className="flex-grow-1 d-flex">
+          <div className="flex-grow-1 d-flex flex-column flex-md-row">
             {/* VIDEO */}
-            <div className="flex-grow-1 p-3 d-flex justify-content-center">
+            <div className="flex-grow-1 p-2 p-md-3 d-flex justify-content-center">
               <div
                 className="rounded-4 overflow-hidden position-relative"
                 style={{
                   background: "#000",
                   boxShadow: "0 0 40px rgba(236,72,153,.4)",
-                  height: "70vh",
+                  height: window.innerWidth < 768 ? "40vh" : "70vh",
                   width: "100%",
                 }}
               >
@@ -462,11 +462,13 @@ useEffect(() => {
 
             {/* CHAT */}
             <div
-              className="p-3"
+              className="p-2 p-md-3"
               style={{
-                width: 360,
+                width: "100%",
+                maxWidth: 360,
                 background: "#020617",
-                borderLeft: "1px solid #1e293b",
+                borderLeft: window.innerWidth >= 768 ? "1px solid #1e293b" : "none",
+                borderTop: window.innerWidth < 768 ? "1px solid #1e293b" : "none",
               }}
             >
               <ul className="nav nav-pills mb-3">
@@ -482,7 +484,7 @@ useEffect(() => {
                 ref={chatBoxRef}
                 className="rounded-3 p-3 mb-3"
                 style={{
-                  height: "60vh",
+                  height: window.innerWidth < 768 ? "40vh" : "60vh",
                   background: "#020617",
                   border: "1px solid #1e293b",
                   overflowY: "auto",

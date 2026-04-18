@@ -27,6 +27,30 @@ export const registerUser = createAsyncThunk(
 );
 
 
+export const agentregister = createAsyncThunk(
+  "auth/agentregister",
+  async (data, thunkAPI) => {
+    try {
+      const response = await axiosInstance.post(
+        ENDPOINTS.AGENTREGISTER,
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Something went wrong"
+      );
+    }
+  }
+);
+
+
 
 /* ================= LOGIN ================= */
 export const loginUser = createAsyncThunk(

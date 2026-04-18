@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["user", "creator", "admin"],
+      enum: ["user", "creator", "admin", "agent"],
       default: "user",
     },
 
@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema(
     },
 
     liveStatus: {
+      type: Number,
+      default: 0,
+    },
+
+    userStatus: {
       type: Number,
       default: 0,
     },
@@ -92,6 +97,10 @@ const userSchema = new mongoose.Schema(
     tokenDate: {
       type: Date,
       default: null,
+    },
+    adminCommission: {
+      type: Number,
+      default: 0
     },
   },
   { timestamps: true }

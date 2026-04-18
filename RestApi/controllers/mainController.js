@@ -1,6 +1,6 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-token");
 const User = require("../models/MainModel");
-const Menu = require("../models/TipModel");
+const {Wallet, MyTip} = require("../models/TipModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -47,6 +47,7 @@ exports.register = async (req, res) => {
       wallet: "0",
       vendor_id: "",
       liveStatus: 0,
+      userStatus: 1,
       registerDate: new Date(),
     });
 
@@ -69,6 +70,78 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.agentregister = async (req, res) => {
+  try {
+    const {
+      name,
+      username,
+      email,
+      password,
+      role,
+      vendor_id,
+      gender,
+      country
+    } = req.body;
+
+    const loggedInUser = req.user; // 🔥 from auth middleware
+
+    // 🔍 check email
+    const exist = await User.findOne({ email });
+    if (exist) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    // 🔐 hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ☁️ S3 image
+    let profileImage = "";
+    if (req.file && req.file.location) {
+      profileImage = req.file.location;
+    }
+
+    // 👤 create user
+    const user = await User.create({
+      name,
+      username,
+      email,
+      password: hashedPassword,
+
+      role: role || "user",
+
+      gender: gender || "others",
+      country: country || "India",
+
+      profileImage,
+
+      wallet: "0",
+
+      vendor_id: vendor_id, // 🔥 AUTO ASSIGNED
+
+      liveStatus: 0,
+      userStatus: 1,
+      registerDate: new Date(),
+    });
+
+    // ❌ remove password
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: userData,
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -346,10 +419,51 @@ exports.getLiveStatus = async (req, res) => {
       });
     }
 
+    // ================= DATE RANGE =================
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // ================= TOTAL TIPS =================
+    const totalTips = await MyTip.countDocuments({
+      myid: user._id,
+    });
+
+    // ================= TODAY EARNINGS =================
+    const todayAgg = await MyTip.aggregate([
+      {
+        $match: {
+          myid: user._id,
+          createdAt: { $gte: today, $lte: endOfDay },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 }, // tip count (you can later change to amount field)
+        },
+      },
+    ]);
+
+    const todayEarnings = todayAgg[0]?.total || 0;
+
     return res.status(200).json({
       success: true,
+
+      user: user,
+
+      // 🔥 EXISTING
       liveStatus: user.liveStatus,
-      user: user
+
+      // 💰 NEW ADDITIONS
+      wallet: user.wallet || 0,
+      totalTips,
+      todayEarnings,
+
+      dailyLimit: user.dailyLimit || 0,
+      getdailyLimit: user.getdailyLimit || 0,
     });
 
   } catch (error) {
@@ -547,61 +661,221 @@ exports.createRazorpayOrder = async (req, res) => {
 
 
 exports.verifyPayment = async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      amount,
+      user_id
+    } = req.body;
 
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    amount,
-    user_id
-  } = req.body;
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
 
-  const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
 
-  const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-    .update(body)
-    .digest("hex");
+    if (expectedSignature === razorpay_signature) {
 
-  if (expectedSignature === razorpay_signature) {
+      const senderUser = await User.findById(user_id);
 
-  const senderUser = await User.findById(user_id);
+      if (!senderUser) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
 
-  if (!senderUser) {
-    return res.status(404).json({
+      const rechargeAmount = Number(amount);
+      const currentWallet = Number(senderUser.wallet);
+
+      if (rechargeAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid amount"
+        });
+      }
+
+      // ✅ UPDATE WALLET BALANCE
+      senderUser.wallet = currentWallet + rechargeAmount;
+      await senderUser.save();
+
+      // ✅ INSERT INTO WALLET TABLE
+      await Wallet.create({
+        user_id: user_id,
+        amount: rechargeAmount,
+        type: "Credit", // recharge
+        status: "Success",
+        payment_id: razorpay_payment_id,
+        order_id: razorpay_order_id,
+        date: new Date()
+      });
+
+      
+
+      return res.json({
+        success: true,
+        message: "Wallet recharged successfully",
+        wallet: senderUser.wallet
+      });
+
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid signature"
+      });
+    }
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
       success: false,
-      message: "User not found"
+      message: error.message
     });
   }
+};
 
-  const rechargeAmount = Number(amount);
-  const currentWallet = Number(senderUser.wallet);
 
-  if (rechargeAmount <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid amount"
+// All user
+
+exports.allactiveuser = async (req, res) => {
+  try {
+    const { role } = req.params; // 👈 URL se role aayega
+
+    const baseFilter = {};
+
+    // ✅ if role provided
+    if (role) {
+      baseFilter.role = role;
+    }
+
+    const users = await User.aggregate([
+      {
+        $match: baseFilter,
+      },
+      {
+        $project: { password: 0 },
+      },
+    ]);
+
+    res.json({
+      users,
     });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
+};
 
-  // deduct wallet
-  senderUser.wallet = currentWallet + rechargeAmount;
 
-  await senderUser.save();
+exports.allagentliveactiveuser = async (req, res) => {
+  try {
+    const { role, agent_id } = req.params;
 
-  return res.json({
-    success: true,
-    message: "Wallet deducted successfully",
-    wallet: senderUser.wallet
-  });
+    const liveStatus = 1;
 
-} else {
+    const baseFilter = {};
 
-    res.status(400).json({
-      success: false,
-      message: "Invalid signature"
+    // ✅ role filter
+    if (role) {
+      baseFilter.role = role;
+    }
+
+    if (liveStatus) {
+      baseFilter.liveStatus = liveStatus;
+    }
+
+    // ✅ agent_id ko vendor_id se match karo
+    if (agent_id) {
+      baseFilter.vendor_id = agent_id;
+    }
+
+    const users = await User.aggregate([
+      {
+        $match: baseFilter,
+      },
+      {
+        $project: { password: 0 },
+      },
+    ]);
+
+    res.json({ users });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.allagentactiveuser = async (req, res) => {
+  try {
+    const { role, agent_id } = req.params;
+
+    const baseFilter = {};
+
+    // ✅ role filter
+    if (role) {
+      baseFilter.role = role;
+    }
+
+    // ✅ agent_id ko vendor_id se match karo
+    if (agent_id) {
+      baseFilter.vendor_id = agent_id;
+    }
+
+    const users = await User.aggregate([
+      {
+        $match: baseFilter,
+      },
+      {
+        $project: { password: 0 },
+      },
+    ]);
+
+    res.json({ users });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+// Update User Status
+
+exports.updatestatus = async (req, res) => {
+  try {
+    const { id, status } = req.params;
+
+    // validate status
+    if (status !== "0" && status !== "1") {
+      return res.status(400).json({
+        message: "Invalid status value. Use 0 or 1",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { userStatus: Number(status) },
+      { new: true }
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      message: "User status updated successfully",
+      user: updatedUser,
     });
 
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 

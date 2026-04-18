@@ -68,6 +68,7 @@ const myTipSchema = new mongoose.Schema(
       type: String, // creator id
       default: "",
     },
+    
 
     date: {
       type: Date,
@@ -161,12 +162,63 @@ EXPORT MODELS
 ========================
 */
 
+const walletSchema = new mongoose.Schema({
+  user_id: String,
+  amount: Number,
+  type: String, // Credit / Debit
+  status: String,
+  payment_id: String,
+  order_id: String,
+  date: Date
+}, { timestamps: true });
+
+
+const withdrawalSchema = new mongoose.Schema(
+  {
+    user_id: {
+      type: String,
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    type: {
+      type: String, // Credit / Debit
+      enum: ["Credit", "Debit"],
+      default: "Debit",
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Success", "Failed"],
+      default: "Pending",
+    },
+    payment_id: {
+      type: String,
+      default: "",
+    },
+    
+    date: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { timestamps: true }
+);
+
+
+
+
 const Menu = mongoose.model("Menu", menuSchema);
 const MyTip = mongoose.model("Mytip", myTipSchema);
 const PrivateShow = mongoose.model("PrivateShow", PrivateShowSchema);
+const Wallet = mongoose.model("Wallet", walletSchema);
+const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
 
 module.exports = {
   Menu,
   MyTip,
   PrivateShow,
+  Wallet,
+  Withdrawal,
 };

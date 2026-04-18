@@ -29,8 +29,12 @@ function Login() {
       const result = await dispatch(loginUser(formData)).unwrap();
 
       // 🔥 Role Based Redirect
-      if (result.user.role === "creator") {
+      if (result.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (result.user.role === "creator") {
         navigate("/creator/dashboard");
+      } else if (result.user.role === "agent") {
+        navigate("/agent/dashboard");
       } else {
         navigate("/");
       }

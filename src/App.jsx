@@ -33,6 +33,26 @@ import PremiumUser from "./pages/PremiumUser";
 import NudeChat from "./pages/NudeChat";
 import Creators from "./pages/Creators";
 import Profile from "./components/Profile";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCreators from "./pages/admin/AdminCreators";
+import AdminTransactions from "./pages/admin/AdminTransactions";
+import AdminWithdraw from "./pages/admin/AdminWithdraw";
+import AdminLive from "./pages/admin/AdminLive";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminPackages from "./pages/admin/AdminPackages";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminTransactionsTip from "./pages/admin/AdminTransactionsTip";
+import AdminRechargeHistory from "./pages/admin/AdminRechargeHistory";
+import CreatorWithdrawal from "./pages/CreatorWithdrawal";
+import AdminAddAgent from "./pages/admin/AdminAddAgent";
+import AdminAgent from "./pages/admin/AdminAgent";
+import AgentDashboard from "./pages/agent/AgentDashboard";
+import AgentUsers from "./pages/agent/AgentUsers";
+import AgentUserReports from "./pages/agent/AgentUserReports";
+import AgentLive from "./pages/agent/AgentLive";
+import AgentAddUser from "./pages/agent/AgentAddUser";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -65,6 +85,8 @@ function App() {
                 <Route path="/live/:id" element={<Live />} />
                 <Route path="/live-viewer" element={<Profile />} />
 
+                
+
               </Routes>
             </main>
             <Footer />
@@ -73,6 +95,28 @@ function App() {
       />
 
       {/* ============ PROTECTED ROUTES ============ */}
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/user" element={<AdminUsers />} />
+      <Route path="/admin/creator" element={<AdminCreators />} />
+      <Route path="/admin/transection" element={<AdminTransactions />} />
+      <Route path="/admin/withdraw" element={<AdminWithdraw />} />
+      <Route path="/admin/live" element={<AdminLive />} />
+      <Route path="/admin/report" element={<AdminReports />} />
+      <Route path="/admin/package" element={<AdminPackages />} />
+      <Route path="/admin/analytics" element={<AdminAnalytics />} />
+      <Route path="/admin/setting" element={<AdminSettings />} />
+      <Route path="/admin/transactions/tip" element={<AdminTransactionsTip />} />
+      <Route path="/admin/transactions/recharge" element={<AdminRechargeHistory />} />
+      <Route path="/admin/add-agent" element={<AdminAddAgent />} />
+      <Route path="/admin/agent" element={<AdminAgent />} />
+
+      <Route path="/agent/dashboard" element={<AgentDashboard />} />
+      <Route path="/agent/users" element={<AgentUsers />} />
+      <Route path="/agent/reports" element={<AgentUserReports />} />
+      <Route path="/agent/live" element={<AgentLive />} />
+      <Route path="/agent/add-user" element={<AgentAddUser />} />
+
+
       <Route
         path="/creator/dashboard"
         element={
@@ -105,6 +149,13 @@ function App() {
         path="/creator/private"
         element={
           token ? <PrivateMenu /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/creator/withdrawal"
+        element={
+          token ? <CreatorWithdrawal /> : <Navigate to="/login" replace />
         }
       />
 

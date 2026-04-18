@@ -9,7 +9,10 @@ const upload  = require("../middleware/upload");
 const mux = require("../config/mux");
 
 router.post("/register", upload.single("profileImage"), controller.register);
+router.post("/agentregister", upload.single("profileImage"), controller.agentregister);
 router.post("/login", controller.login);
+router.delete("/deleteuser/:id", controller.deleteUser);
+router.get("/updateuserstatus/:id/:status", controller.updatestatus);
 
 router.post("/go-live", protect, controller.toggleLiveStatus);
 router.get("/get_live_status", protect, controller.getLiveStatus);
@@ -29,6 +32,20 @@ router.post("/set-private-show", protect, controller.setPrivateShow);
 
 router.post("/create-order", controller.createRazorpayOrder);
 router.post("/verify-payment", controller.verifyPayment);
+
+// admin
+router.get("/alluser/:role", controller.allactiveuser);
+router.get("/tiptransection", menu.getTipTransection);
+router.get("/rechargehistory", menu.getRechargeHistory);
+router.post("/withdrawal", menu.withdrawalRequest);
+router.get("/withdrawal-history/:user_id", menu.getWithdrawalHistory);
+router.get("/admin-withdrawal-history", menu.getAdminWithdrawalHistory);
+router.put("/update-withdrawal/:id/:status", menu.updateWithdrawalStatus);
+router.get("/admindashboard", menu.admindashboard);
+
+// Agent
+router.get("/agentuser/:role/:agent_id", controller.allagentactiveuser);
+router.get("/agentliveuser/:role/:agent_id", controller.allagentliveactiveuser);
 
 
 let activeStream = null;

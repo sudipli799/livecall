@@ -1,5 +1,6 @@
 const ENDPOINTS = {
   REGISTER: "/register",
+  AGENTREGISTER: "/agentregister",
   LOGIN: "/login",
   USERS: "/users",
   LIVEUSER: "/liveusers",
@@ -15,6 +16,20 @@ const ENDPOINTS = {
   TIPHISTORY: "/token",
   SETPRIVATESHOW: "/set-private-show",
   PRIVATESHOWREQUEST: "/privateshowrequest",
+
+  ALLUSER: "/alluser",
+  DELETEUSER: "/deleteuser",
+  UPDATEUSERSTATUS: "/updateuserstatus",
+  TIPTRANSECTION: "/tiptransection",
+  RECHARGEHISTORY: "/rechargehistory",
+  WITHDRAWALHISTORY: "/withdrawal-history",
+  WITHDRAWALREQUEST: "/withdrawal",
+  ADMINWITHDRAWALREQUEST: "/admin-withdrawal-history",
+  UPDATEWITHDRAWAL: "/update-withdrawal",
+  ADMINDASHBOARD: "/admindashboard",
+
+  AGENTUSER: "/agentuser",
+  AGENTLIVEUSER: "/agentliveuser",
 };
 
 export default ENDPOINTS;
