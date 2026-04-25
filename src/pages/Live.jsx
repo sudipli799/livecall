@@ -202,89 +202,95 @@ const isTodayToken = (date) => {
 
 const startPrivateShow = async (type) => {
 
-    if (!checkLogin()) return;
+  if (!checkLogin()) return;
 
-    let tokenAmount =
-      type === "private"
-        ? creator?.privateShowAmount
-        : creator?.exclusiveShowAmount;
+  let tokenAmount =
+    type === "private"
+      ? creator?.privateShowAmount
+      : creator?.exclusiveShowAmount;
 
-    if (!tokenAmount) {
-      alert("Amount not set");
+  if (!tokenAmount) {
+    alert("Amount not set");
+    return;
+  }
+
+  // 🔥 NEW LOGIC (IMPORTANT)
+  const requiredBalance = tokenAmount * 10;
+
+  if (user.wallet < requiredBalance) {
+    alert(`Minimum ${requiredBalance} tokens required to start this show`);
+    
+    setShowPrivate(false);        // modal close
+    setShowWalletRecharge(true);  // recharge open
+    return;
+  }
+
+  try {
+
+    const res = await axiosInstance.post(
+      ENDPOINTS.PRIVATESHOWREQUEST,
+      {
+        myid: id,
+        token: tokenAmount,
+        msg:
+          type === "private"
+            ? "Started Private Show"
+            : "Started Exclusive Private Show",
+        type:
+          type === "private"
+            ? "Private"
+            : "Exclusive",
+        sender_id: user?._id
+      }
+    );
+
+    const requestId = res.data.requestId;
+
+    const chatRef = ref(db, "liveChats/" + id);
+
+    await push(chatRef, {
+      user: user?.name || "viewer",
+      text:
+        type === "private"
+          ? `Started Private Show - ${tokenAmount} Tokens`
+          : `Started Exclusive Private Show - ${tokenAmount} Tokens`,
+      time: Date.now(),
+      type: "Private"
+    });
+
+    const privateShowRef = ref(db, "privateShows/" + requestId);
+
+    await set(privateShowRef, {
+      requestId: requestId,
+      sender_id: user?._id,
+      creator_id: id,
+      type: type,
+      status: "pending",
+      startTime: '',
+      channelName: res?.data?.agora?.channelName || "",
+      createdAt: Date.now()
+    });
+
+    alert("Private show started");
+
+    setShowPrivate(false);
+
+    navigate(`/private-show-user/${requestId}`);
+
+  } catch (error) {
+
+    if (
+      error?.response?.data?.message ===
+      "Insufficient wallet balance"
+    ) {
+      setShowPrivate(false);
+      setShowWalletRecharge(true);
       return;
     }
 
-    try {
-
-      const res = await axiosInstance.post(
-        ENDPOINTS.PRIVATESHOWREQUEST,
-        {
-          myid: id,
-          token: tokenAmount,
-          msg:
-            type === "private"
-              ? "Started Private Show"
-              : "Started Exclusive Private Show",
-          type:
-            type === "private"
-              ? "Private"
-              : "Exclusive",
-          sender_id: user?._id
-        }
-      );
-
-      const requestId = res.data.requestId;
-      const chatRef = ref(db, "liveChats/" + id);
-
-      await push(chatRef, {
-        user: user?.name || "viewer",
-        text:
-          type === "private"
-            ? `Started Private Show - ${tokenAmount} Tokens`
-            : `Started Exclusive Private Show - ${tokenAmount} Tokens`,
-        time: Date.now(),
-        type: "Private"
-      });
-
-      // privateshow
-      const privateShowRef = ref(db, "privateShows/" + requestId);
-
-      await set(privateShowRef, {
-        requestId: requestId,
-        sender_id: user?._id,
-        creator_id: id,
-        type: type,
-        status: "pending",
-        startTime: '',
-        channelName: res?.data?.agora?.channelName || "",
-        createdAt: Date.now()
-      });
-
-      alert("Private show started");
-
-      setShowPrivate(false);
-
-      navigate(`/private-show-user/${requestId}`);
-
-      // // await fetchUserDetail();
-
-      // // ✅ wallet update
-      // dispatch(updateWallet(user.wallet-tokenAmount));
-
-    } catch (error) {
-
-      if (
-        error?.response?.data?.message ===
-        "Insufficient wallet balance"
-      ) {
-        setShowPrivate(false);
-        setShowWalletRecharge(true);
-        return;
-      }
-
-      alert(error?.response?.data?.message || "Something went wrong");
-    }
-  };
+    alert(error?.response?.data?.message || "Something went wrong");
+  }
+};
 
 const fetchUserDetail = async () => {
     try {

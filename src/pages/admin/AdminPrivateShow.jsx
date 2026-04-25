@@ -13,6 +13,14 @@ export default function AdminPrivateShow() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // ✅ filters
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  // ✅ pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const perPage = 5;
+
   useEffect(() => {
     fetchRequests();
   }, []);
@@ -20,11 +28,7 @@ export default function AdminPrivateShow() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-
-      const res = await axiosInstance.get(
-        `${ENDPOINTS.ADMINREQUEST}`
-      );
-
+      const res = await axiosInstance.get(`${ENDPOINTS.ADMINREQUEST}`);
       if (res?.data?.data) {
         setRequests(res.data.data);
       }
@@ -35,43 +39,80 @@ export default function AdminPrivateShow() {
     }
   };
 
+  // ✅ filtering logic
+  const filtered = requests.filter((req) => {
+    const matchStatus =
+      statusFilter === "all" || req.status === statusFilter;
+
+    const matchSearch = req.sender_id?.name
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+    return matchStatus && matchSearch;
+  });
+
+  // ✅ pagination logic
+  const indexOfLast = currentPage * perPage;
+  const indexOfFirst = indexOfLast - perPage;
+  const currentData = filtered.slice(indexOfFirst, indexOfLast);
+
+  const totalPages = Math.ceil(filtered.length / perPage);
+
   return (
     <div className="container-fluid">
       <div className="row min-vh-100">
 
         <CreatorSidebar />
 
-        <div className="col-12 col-md-9 col-lg-10 p-4"
-          style={{
-            background: "linear-gradient(135deg,#eef2ff,#f8fafc)",
-          }}
+        <div
+          className="col-12 col-md-9 col-lg-10 p-4"
+          style={{ background: "linear-gradient(135deg,#eef2ff,#f8fafc)" }}
         >
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2 className="fw-bold">🎥 Show Requests</h2>
 
-          <div className="mb-4">
-            <h2 className="fw-bold mb-1">🎥 Show Requests</h2>
+            {/* 🔍 search */}
+            <input
+              type="text"
+              placeholder="Search user..."
+              className="form-control w-auto"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* 🎯 filter */}
+          <div className="mb-3">
+            <select
+              className="form-select w-auto"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Started">Started</option>
+              <option value="Completed">Completed</option>
+            </select>
           </div>
 
           {loading && (
-            <div className="text-center my-3">
-              ⏳ Loading requests...
-            </div>
+            <div className="text-center my-3">⏳ Loading...</div>
           )}
 
           <div className="card border-0 rounded-4 shadow-lg overflow-hidden">
-
-            <div style={{
-              height: 5,
-              background:
-                "linear-gradient(90deg,#6366f1,#ec4899,#22c55e)",
-            }} />
+            <div
+              style={{
+                height: 5,
+                background:
+                  "linear-gradient(90deg,#6366f1,#ec4899,#22c55e)",
+              }}
+            />
 
             <div className="card-body p-0">
-
               <div className="table-responsive">
-
                 <table className="table align-middle mb-0">
-
-                  <thead className="text-white"
+                  <thead
+                    className="text-white"
                     style={{
                       background:
                         "linear-gradient(90deg,#6366f1,#4f46e5,#ec4899)",
@@ -83,29 +124,31 @@ export default function AdminPrivateShow() {
                       <th>Type</th>
                       <th>Token/min</th>
                       <th>Status</th>
-                      <th>Duration (min)</th>
-                      <th>Total Token</th>
-                      
+                      <th>Duration</th>
+                      <th>Total</th>
                       <th>Date</th>
                       <th>Action</th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {requests.map((req, i) => {
-
-                      // ✅ seconds → minutes (ceil)
+                    {currentData.map((req, i) => {
                       const minutes = Math.ceil((req.duration || 0) / 60);
-
-                      // ✅ total token
                       const total = minutes * (req.token || 0);
 
                       return (
-                        <tr key={req._id}>
-
+                        <tr
+                          key={req._id}
+                          style={{ cursor: "pointer" }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = "#f1f5f9")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "")
+                          }
+                        >
                           <td>{i + 1}</td>
 
-                          {/* USER */}
                           <td>
                             <div className="d-flex align-items-center gap-2">
                               <img
@@ -115,7 +158,6 @@ export default function AdminPrivateShow() {
                                   width: 40,
                                   height: 40,
                                   borderRadius: "50%",
-                                  objectFit: "cover",
                                 }}
                               />
                               <div>
@@ -130,38 +172,28 @@ export default function AdminPrivateShow() {
                           </td>
 
                           <td>
-                            <span className="badge bg-info">
-                              {req.type}
-                            </span>
+                            <span className="badge bg-info">{req.type}</span>
                           </td>
 
                           <td>💰 {req.token}</td>
 
-                          {/* STATUS */}
                           <td>
-                            <span className={`badge ${
-                              req.status === "Pending"
-                                ? "bg-warning text-dark"
-                                : req.status === "started"
-                                ? "bg-success"
-                                : "bg-secondary"
-                            }`}>
+                            <span
+                              className={`badge ${
+                                req.status === "Pending"
+                                  ? "bg-warning text-dark"
+                                  : req.status === "Started"
+                                  ? "bg-success"
+                                  : "bg-secondary"
+                              }`}
+                            >
                               {req.status}
                             </span>
                           </td>
 
-                          {/* DURATION */}
-                          <td>
-                            {minutes} min
-                          </td>
+                          <td>{minutes} min</td>
 
-                          {/* TOTAL */}
-                          <td className="fw-bold text-success">
-                            💸 {total}
-                          </td>
-
-                          {/* ACTION */}
-                          
+                          <td className="fw-bold text-success">💸 {total}</td>
 
                           <td>
                             {new Date(req.createdAt).toLocaleString()}
@@ -169,47 +201,59 @@ export default function AdminPrivateShow() {
 
                           <td>
                             {req.status === "Pending" && (
-                                <button
+                              <button
                                 className="btn btn-sm btn-primary rounded-pill"
-                                onClick={() => navigate(`/private-show-creator/${req._id}`)}
-                                >
-                                ▶ Start Call
-                                </button>
+                                onClick={() =>
+                                  navigate(`/monitor/${req._id}`)
+                                }
+                              >
+                                ▶ Start
+                              </button>
                             )}
 
-                            {req.status === "started" && (
-                                <button
-                                className="btn btn-sm btn-success rounded-pill"
-                                onClick={() => navigate(`/private-show-creator/${req._id}`)}
-                                >
-                                🟢 On Going
-                                </button>
+                            {req.status === "Started" && (
+                              <button className="btn btn-sm btn-success rounded-pill">
+                                🟢 Live
+                              </button>
                             )}
 
-                            {req.status === "completed" && (
-                                <button className="btn btn-sm btn-secondary rounded-pill">
-                                ✔ Completed
-                                </button>
+                            {req.status === "Completed" && (
+                              <button className="btn btn-sm btn-secondary rounded-pill">
+                                ✔ Done
+                              </button>
                             )}
-                            </td>
-
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
-
                 </table>
               </div>
 
-              {requests.length === 0 && !loading && (
+              {/* 📄 pagination */}
+              <div className="d-flex justify-content-center p-3 gap-2">
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`btn btn-sm ${
+                      currentPage === i + 1
+                        ? "btn-primary"
+                        : "btn-outline-primary"
+                    }`}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              {filtered.length === 0 && !loading && (
                 <div className="text-center p-4 text-muted">
-                  No show requests found
+                  No data found
                 </div>
               )}
-
             </div>
           </div>
-
         </div>
       </div>
     </div>

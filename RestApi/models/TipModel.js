@@ -140,12 +140,22 @@ const PrivateShowSchema = new mongoose.Schema(
       default: 0
     },
 
+    adminUid: {
+      type: Number,
+      default: 0
+    },
+
     viewerToken: {
       type: String,
       default: ""
     },
 
     creatorToken: {
+      type: String,
+      default: ""
+    },
+
+    adminToken: {
       type: String,
       default: ""
     },

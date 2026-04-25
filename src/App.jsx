@@ -59,6 +59,7 @@ import CreatorPrivateRoom from "./pages/CreatorPrivateRoom";
 import UserPrivateRoom from "./pages/UserPrivateRoom";
 import MyShowRequest from "./pages/MyShowRequest";
 import AdminPrivateShow from "./pages/admin/AdminPrivateShow";
+import AdminMonitor from "./pages/admin/AdminMonitor";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -135,12 +136,15 @@ function App() {
       <Route path="/admin/add-agent" element={<AdminAddAgent />} />
       <Route path="/admin/agent" element={<AdminAgent />} />
       <Route path="/admin/private" element={<AdminPrivateShow />} />
+      <Route path="/admin/private" element={<AdminPrivateShow />} />
+      <Route path="/admin/monitor/:id" element={<AdminMonitor />} />
 
       <Route path="/agent/dashboard" element={<AgentDashboard />} />
       <Route path="/agent/users" element={<AgentUsers />} />
       <Route path="/agent/reports" element={<AgentUserReports />} />
       <Route path="/agent/live" element={<AgentLive />} />
       <Route path="/agent/add-user" element={<AgentAddUser />} />
+      
 
 
       <Route

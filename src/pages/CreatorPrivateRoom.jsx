@@ -234,6 +234,28 @@ export default function CreatorPrivateRoom() {
 
       await client.publish([micTrack, camTrack]);
 
+      setTimeout(() => {
+        client.remoteUsers.forEach(async (user) => {
+          if (user.hasVideo) {
+            await client.subscribe(user, "video");
+
+            const div = document.createElement("div");
+            div.style.width = "100%";
+            div.style.height = "100%";
+
+            remoteVideoRef.current.innerHTML = "";
+            remoteVideoRef.current.appendChild(div);
+
+            user.videoTrack.play(div);
+          }
+
+          if (user.hasAudio) {
+            await client.subscribe(user, "audio");
+            user.audioTrack.play();
+          }
+        });
+      }, 1000);
+
       client.on("user-published", async (user, mediaType) => {
         await client.subscribe(user, mediaType);
 
@@ -272,6 +294,31 @@ export default function CreatorPrivateRoom() {
       await clientRef.current?.leave();
     };
   }, [showData]);
+
+
+  useEffect(() => {
+  if (!firebaseData) return;
+
+  const status = firebaseData?.status?.toLowerCase();
+
+  // 🔥 agar ended ya completed ho gaya
+  if (status === "ended" || status === "completed") {
+    
+    console.log("🚪 Redirecting because show ended");
+
+    // 🔥 Agora cleanup (important)
+    localTracksRef.current.forEach((track) => {
+      track.stop();
+      track.close();
+    });
+
+    clientRef.current?.leave();
+
+    // 🔥 redirect
+    navigate("/creator/private-request");
+  }
+
+}, [firebaseData]);
 
   /*
   ==========================

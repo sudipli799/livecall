@@ -298,7 +298,11 @@ exports.submitPrivateRequest = async (req, res) => {
       });
     }
 
-    const channelName = `private_sudip`;
+    const now = new Date();
+    const date = now.toISOString().split("T")[0]; // YYYY-MM-DD
+    const time = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
+
+    const channelName = `${myid}`;
 
     const viewerUid = Math.floor(Math.random() * 100000);
     const creatorUid = Math.floor(Math.random() * 100000);
@@ -325,6 +329,20 @@ exports.submitPrivateRequest = async (req, res) => {
       RtcRole.PUBLISHER,
       privilegeExpireTime
     );
+
+
+    const adminUid = Math.floor(Math.random() * 100000);
+
+    const adminToken = RtcTokenBuilder.buildTokenWithUid(
+      appId,
+      appCertificate,
+      channelName,
+      adminUid,
+      RtcRole.SUBSCRIBER, // 🔥 important (admin sirf dekh raha hai)
+      privilegeExpireTime
+    );
+
+    
 
     /*
     ==========================
@@ -367,8 +385,10 @@ exports.submitPrivateRequest = async (req, res) => {
       channelName,
       viewerUid,
       creatorUid,
+      adminUid,
       viewerToken,
       creatorToken,
+      adminToken,
       showStartTime: null,
       showEndTime: null,
       duration: 0,
@@ -639,7 +659,7 @@ exports.completePrivateShow = async (req, res) => {
     const endTime = Date.now();
 
     const durationSeconds = Math.floor((endTime - startTime) / 1000);
-    const durationMinutes = Math.ceil(durationSeconds / 60); // per minute billing
+    const durationMinutes = Math.floor(durationSeconds / 60); // per minute billing
 
     // 💰 TOKEN CALCULATION
     const tokenPerMin = Number(privateShow.token || 0);
