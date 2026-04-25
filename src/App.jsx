@@ -55,6 +55,10 @@ import AgentUsers from "./pages/agent/AgentUsers";
 import AgentUserReports from "./pages/agent/AgentUserReports";
 import AgentLive from "./pages/agent/AgentLive";
 import AgentAddUser from "./pages/agent/AgentAddUser";
+import CreatorPrivateRoom from "./pages/CreatorPrivateRoom";
+import UserPrivateRoom from "./pages/UserPrivateRoom";
+import MyShowRequest from "./pages/MyShowRequest";
+import AdminPrivateShow from "./pages/admin/AdminPrivateShow";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -101,8 +105,8 @@ function App() {
                 <Route path="/creator-register" element={<CreatorRegister />} />
                 <Route path="/category" element={<Category />} />
                 {/* <Route path="/live" element={<Live />} /> */}
-                <Route path="/cr" element={<Agoracreator />} />
-                <Route path="/uc" element={<Agorauser />} />
+                <Route path="/private-show-creator/:id" element={<CreatorPrivateRoom />} />
+                <Route path="/private-show-user/:id" element={<UserPrivateRoom />} />
                 <Route path="/live/:id" element={<Live />} />
                 <Route path="/live-viewer" element={<Profile />} />
 
@@ -130,6 +134,7 @@ function App() {
       <Route path="/admin/transactions/recharge" element={<AdminRechargeHistory />} />
       <Route path="/admin/add-agent" element={<AdminAddAgent />} />
       <Route path="/admin/agent" element={<AdminAgent />} />
+      <Route path="/admin/private" element={<AdminPrivateShow />} />
 
       <Route path="/agent/dashboard" element={<AgentDashboard />} />
       <Route path="/agent/users" element={<AgentUsers />} />
@@ -177,6 +182,13 @@ function App() {
         path="/creator/withdrawal"
         element={
           token ? <CreatorWithdrawal /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/creator/private-request"
+        element={
+          token ? <MyShowRequest /> : <Navigate to="/login" replace />
         }
       />
 

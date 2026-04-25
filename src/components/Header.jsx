@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
-import { FaBars, FaSearch } from "react-icons/fa";
+import { FaBars, FaSearch, FaSignOutAlt } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/slices/authSlice";
 import { Collapse } from "bootstrap";
+
 
 function Header() {
   const navigate = useNavigate();
@@ -84,49 +85,27 @@ function Header() {
               </Link>
             </>
           ) : (
-            <div className="dropdown">
-              <button
-                className="btn btn-light dropdown-toggle d-flex align-items-center gap-2"
-                data-bs-toggle="dropdown"
+            <div className="d-flex align-items-center gap-2">
+              <Link
+                to="/creator/dashboard"
+                className="fw-bold text-dark text-decoration-none"
               >
-                <strong>{user.name}</strong>
-                <span className="badge bg-success">
-                  💰 {user.wallet || 0}
-                </span>
+                {user?.name}
+              </Link>
+
+              {/* WALLET */}
+              <span className="badge bg-success">
+                💰 {user?.wallet || 0}
+              </span>
+
+              {/* ✅ LOGOUT ICON */}
+              <button
+                className="btn btn-sm btn-danger d-flex align-items-center justify-content-center"
+                onClick={handleLogout}
+                style={{ width: "32px", height: "32px", padding: 0 }}
+              >
+                <FaSignOutAlt size={14} />
               </button>
-
-              <ul className="dropdown-menu dropdown-menu-end">
-
-                <li>
-                  <Link className="dropdown-item" to="/profile">
-                    My Profile
-                  </Link>
-                </li>
-
-                <li>
-                  <Link className="dropdown-item" to="/wallet">
-                    My Wallet
-                  </Link>
-                </li>
-
-                <li>
-                  <Link className="dropdown-item" to="/creator/dashboard">
-                    Dashboard
-                  </Link>
-                </li>
-
-                <li><hr className="dropdown-divider" /></li>
-
-                <li>
-                  <button
-                    className="dropdown-item text-danger"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </li>
-
-              </ul>
             </div>
           )}
         </div>
@@ -185,6 +164,8 @@ function Header() {
               <div className="text-success mb-2">
                 💰 Wallet: {user.wallet || 0}
               </div>
+
+              
 
               <Link
                 to="/profile"

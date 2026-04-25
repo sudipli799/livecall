@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { db } from "../firebase";
-import { ref, push, onChildAdded, off } from "firebase/database";
+import { ref, push, onChildAdded, off, set } from "firebase/database";
 import axios from "axios";
 import axiosInstance from "../api/axiosInstance";
 import ENDPOINTS  from "../api/endpoints";
@@ -233,6 +233,7 @@ const startPrivateShow = async (type) => {
         }
       );
 
+      const requestId = res.data.requestId;
       const chatRef = ref(db, "liveChats/" + id);
 
       await push(chatRef, {
@@ -245,9 +246,25 @@ const startPrivateShow = async (type) => {
         type: "Private"
       });
 
+      // privateshow
+      const privateShowRef = ref(db, "privateShows/" + requestId);
+
+      await set(privateShowRef, {
+        requestId: requestId,
+        sender_id: user?._id,
+        creator_id: id,
+        type: type,
+        status: "pending",
+        startTime: '',
+        channelName: res?.data?.agora?.channelName || "",
+        createdAt: Date.now()
+      });
+
       alert("Private show started");
 
       setShowPrivate(false);
+
+      navigate(`/private-show-user/${requestId}`);
 
       // // await fetchUserDetail();
 
@@ -272,8 +289,12 @@ const startPrivateShow = async (type) => {
 const fetchUserDetail = async () => {
     try {
 
-      const res = await axios.get(
-        `http://localhost:5000/api/user/${id}`
+      // const res = await axios.get(
+      //   `http://localhost:5000/api/user/${id}`
+      // );
+
+      const res = await axiosInstance.get(
+        `${ENDPOINTS.USERDETAIL}/${id}`
       );
 
       setCreator(res.data.user);

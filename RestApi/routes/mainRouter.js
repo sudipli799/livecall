@@ -29,6 +29,13 @@ router.post("/submit-token", menu.submitToken);
 router.get("/token/:myid", menu.getSubmittedTokens);
 router.post("/privateshowrequest", menu.submitPrivateRequest);
 router.post("/set-private-show", protect, controller.setPrivateShow);
+router.get("/creator-private-requests/:my_id", menu.getPrivateRequestsByCreator);
+router.get("/user-private-requests/:my_id", menu.getPrivateRequestsByUser);
+router.get("/private-requests/:id", menu.getPrivateRequest);
+router.put("/start-private-show/:id", menu.startPrivateShow);
+router.put("/complete-private-show/:id", menu.completePrivateShow);
+
+router.get("/admin-private-requests", menu.getPrivateRequestsByAdmin);
 
 router.post("/create-order", controller.createRazorpayOrder);
 router.post("/verify-payment", controller.verifyPayment);

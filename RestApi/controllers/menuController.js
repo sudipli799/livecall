@@ -333,25 +333,25 @@ exports.submitPrivateRequest = async (req, res) => {
     */
 
     // sender wallet minus
-    senderUser.wallet =
-      Number(senderUser.wallet) - Number(token);
-    await senderUser.save();
+    // senderUser.wallet =
+    //   Number(senderUser.wallet) - Number(token);
+    // await senderUser.save();
 
-    // creator earning increase
-    creatorUser.getdailyLimit =
-      Number(creatorUser.getdailyLimit || 0) + Number(token);
+    // // creator earning increase
+    // creatorUser.getdailyLimit =
+    //   Number(creatorUser.getdailyLimit || 0) + Number(token);
 
-    await creatorUser.save();
+    // await creatorUser.save();
 
     // ✅ ALSO SAVE IN TIP COLLECTION (NEW)
-      const tip = await MyTip.create({
-        sender_id,
-        token,
-        type: type || "Private",
-        msg: "Private show request",
-        myid,
-        date: new Date(),
-      });
+      // const tip = await MyTip.create({
+      //   sender_id,
+      //   token,
+      //   type: type || "Private",
+      //   msg: "Private show request",
+      //   myid,
+      //   date: new Date(),
+      // });
     /*
     ==========================
     SAVE PRIVATE SHOW
@@ -377,6 +377,7 @@ exports.submitPrivateRequest = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Private show request sent",
+      requestId: privateShow._id,
       data: privateShow,
       senderWallet: senderUser.wallet,              // ✅ optional
       creatorTodayToken: creatorUser.getdailyLimit, // ✅ optional
@@ -399,6 +400,336 @@ exports.submitPrivateRequest = async (req, res) => {
       message: error.message,
     });
 
+  }
+};
+
+exports.getPrivateRequestsByAdmin = async (req, res) => {
+  try {
+
+    // 🔥 No filter → get all records
+    const requests = await PrivateShow.find({})
+      .populate("sender_id", "username name profileImage email")
+      .populate("creator_id", "username name profileImage email")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: requests.length,
+      data: requests,
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+exports.getPrivateRequestsByCreator = async (req, res) => {
+  try {
+
+    const { my_id } = req.params; // 👈 URL se lo (recommended)
+
+    if (!my_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Creator ID is required",
+      });
+    }
+
+    // 🔍 Find all private requests for creator
+    const requests = await PrivateShow.find({
+      creator_id: my_id
+    })
+    .populate("sender_id", "username name profileImage") // optional
+    .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: requests.length,
+      data: requests,
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+
+exports.getPrivateRequestsByUser = async (req, res) => {
+  try {
+
+    const { my_id } = req.params;
+
+    if (!my_id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID required",
+      });
+    }
+
+    const requests = await PrivateShow.find({
+      sender_id: my_id
+    })
+    .populate("creator_id", "username name profileImage wallet") // 🔥 creator detail
+    .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      data: requests,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+exports.getPrivateRequest = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Request ID required",
+      });
+    }
+
+    const request = await PrivateShow.findById(id)
+      .populate("creator_id", "username name profileImage wallet")
+      .populate("sender_id", "username name profileImage wallet");
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Request not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: request,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+exports.startPrivateShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Private show ID required",
+      });
+    }
+
+    // 🔍 Find Private Show
+    const privateShow = await PrivateShow.findById(id);
+
+    if (!privateShow) {
+      return res.status(404).json({
+        success: false,
+        message: "Private show not found",
+      });
+    }
+
+    // ✅ Already started check
+    if (privateShow.status === "Started") {
+      return res.status(400).json({
+        success: false,
+        message: "Show already started",
+      });
+    }
+
+    // ✅ UPDATE ONLY REQUIRED FIELDS
+    privateShow.status = "Started";
+    privateShow.showStartTime = new Date();
+
+    await privateShow.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Private show started",
+      data: privateShow,
+    });
+
+  } catch (error) {
+    console.log("Start Private Show Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.completePrivateShow = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Private show ID required",
+      });
+    }
+
+    // 🔍 Find Show
+    const privateShow = await PrivateShow.findById(id);
+
+    if (!privateShow) {
+      return res.status(404).json({
+        success: false,
+        message: "Private show not found",
+      });
+    }
+
+    // ❌ Already completed check
+    if (privateShow.status === "Completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Show already completed",
+      });
+    }
+
+    if (!privateShow.showStartTime) {
+      return res.status(400).json({
+        success: false,
+        message: "Show not started yet",
+      });
+    }
+
+    // 👤 Users
+    const senderUser = await User.findById(privateShow.sender_id);
+    const creatorUser = await User.findById(privateShow.creator_id);
+
+    if (!senderUser || !creatorUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ⏱️ TIME CALCULATION
+    const startTime = new Date(privateShow.showStartTime).getTime();
+    const endTime = Date.now();
+
+    const durationSeconds = Math.floor((endTime - startTime) / 1000);
+    const durationMinutes = Math.ceil(durationSeconds / 60); // per minute billing
+
+    // 💰 TOKEN CALCULATION
+    const tokenPerMin = Number(privateShow.token || 0);
+    const totalAmount = durationMinutes * tokenPerMin;
+
+    // 💸 WALLET UPDATE
+    if (Number(senderUser.wallet) < totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "User has insufficient balance for final deduction",
+      });
+    }
+
+    // sender se deduct
+    senderUser.wallet = Number(senderUser.wallet) - totalAmount;
+
+    // creator ko 70%
+    const creatorShare = totalAmount * 0.7;
+    const adminCommission = totalAmount * 0.3;
+
+    // ✅ creator earning (wallet)
+    creatorUser.wallet =
+      Number(creatorUser.wallet || 0) + creatorShare;
+
+    // ✅ admin commission store (same user doc me)
+    creatorUser.adminCommission =
+      Number(creatorUser.adminCommission || 0) + adminCommission;
+
+    creatorUser.getdailyLimit =
+      Number(creatorUser.getdailyLimit || 0) + totalAmount;
+
+    await senderUser.save();
+    await creatorUser.save();
+
+    // 📝 UPDATE PRIVATE SHOW
+    privateShow.status = "Completed";
+    privateShow.showEndTime = new Date();
+    privateShow.duration = durationSeconds;
+
+    await privateShow.save();
+
+    /*
+    ==========================
+    🔴 AGORA CLEANUP (OPTIONAL)
+    ==========================
+    */
+    // NOTE: Agora channels auto-expire hote hain
+    // direct destroy API nahi hota
+    // tum yaha future ke liye log save kar sakte ho
+
+    const tip = await MyTip.create({
+        sender_id: privateShow.sender_id,
+        token: totalAmount,
+        type: "Private",
+        msg: "Private Show",
+        myid: privateShow.creator_id,
+        adminCommission: adminCommission,
+        creatorAmount: creatorShare,
+        date: new Date(),
+      });
+
+
+    console.log("Agora cleanup:", {
+      channel: privateShow.channelName,
+      viewerUid: privateShow.viewerUid,
+      creatorUid: privateShow.creatorUid,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Private show completed successfully",
+      data: privateShow,
+      summary: {
+        durationSeconds,
+        durationMinutes,
+        totalAmount,
+        creatorShare,
+        adminCommission,
+        senderWallet: senderUser.wallet,
+        creatorWallet: creatorUser.wallet,
+      },
+    });
+
+  } catch (error) {
+    console.log("Complete Private Show Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 

@@ -11,6 +11,7 @@ export default function AdminSidebar() {
     { icon: "👤", label: "Users", path: "/admin/user" },
     { icon: "🎥", label: "Creators", path: "/admin/creator" },
     { icon: "🔴", label: "Live", path: "/admin/live" },
+    { icon: "🎥", label: "Private Show", path: "/admin/private" },
     {
       icon: "🎥",
       label: "Agents",

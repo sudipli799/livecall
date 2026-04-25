@@ -6,6 +6,7 @@ const ENDPOINTS = {
   LIVEUSER: "/liveusers",
   GOLIVE: "/go-live",
   HOME: "/users",
+  USERDETAIL: "/user",
   LIVESTATUS: "/get_live_status",
   ADDTIP: "/add-tip",
   TIP: "/tip",
@@ -16,6 +17,13 @@ const ENDPOINTS = {
   TIPHISTORY: "/token",
   SETPRIVATESHOW: "/set-private-show",
   PRIVATESHOWREQUEST: "/privateshowrequest",
+  PRIVATEREQUEST: "/private-requests",
+  STARTPRIVATESHOW: "/start-private-show",
+  ENDSHOW:"/complete-private-show",
+
+  CREATORESHOWREQUEST: "/creator-private-requests",
+  ADMINREQUEST: "/admin-private-requests",
+  
 
   ALLUSER: "/alluser",
   DELETEUSER: "/deleteuser",

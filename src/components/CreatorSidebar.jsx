@@ -10,6 +10,7 @@ export default function CreatorSidebar() {
     { icon: "🔴", label: "Go Live", path: "/creator/go-live" },
     { icon: "🎁", label: "Tip Menu", path: "/creator/tip-menu" },
     { icon: "🔒", label: "Private Shows", path: "/creator/private" },
+    { icon: "🔒", label: "Private Request", path: "/creator/private-request" },
     { icon: "💰", label: "Earnings", path: "/creator/earning" },
     { icon: "👥", label: "Withdrawal", path: "/creator/withdrawal" },
   ];

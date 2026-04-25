@@ -106,7 +106,7 @@ const PrivateShowSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Running", "Completed", "Rejected"],
+      enum: ["Pending", "Started", "Completed", "Rejected"],
       default: "Pending",
     },
 
