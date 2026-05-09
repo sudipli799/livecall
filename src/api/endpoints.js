@@ -14,6 +14,7 @@ const ENDPOINTS = {
   UPDATETOKEN: "updatetoken",
   CREATE_RAZORPAY_ORDER: "create-order",
   VERIFY_PAYMENT: "/verify-payment",
+  VERIFY_MEMBERSHIP_PAYMENT: "/verify-membership-payment",
   TIPHISTORY: "/token",
   SETPRIVATESHOW: "/set-private-show",
   PRIVATESHOWREQUEST: "/privateshowrequest",

@@ -231,6 +231,32 @@ const authSlice = createSlice({
           JSON.stringify(state.user)
         );
       }
+    },
+
+    updateMembership: (state, action) => {
+
+      if (state.user) {
+
+        state.user.membershipStatus =
+          action.payload.membershipStatus;
+
+        state.user.membershipType =
+          action.payload.membershipType;
+
+        state.user.membershipActiveDate =
+          action.payload.membershipActiveDate;
+
+        state.user.membershipEndDate =
+          action.payload.membershipEndDate;
+
+        // 🔥 SAVE UPDATED USER
+        localStorage.setItem(
+          "user",
+          JSON.stringify(state.user)
+        );
+
+      }
+
     }
   },
   extraReducers: (builder) => {
@@ -285,5 +311,5 @@ const authSlice = createSlice({
 
 
 
-export const { logout, updateWallet } = authSlice.actions;
+export const { logout, updateWallet, updateMembership } = authSlice.actions;
 export default authSlice.reducer;

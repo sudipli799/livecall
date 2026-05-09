@@ -61,6 +61,25 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
 
+    membershipStatus: {
+      type: Number,
+      default: 0,
+    },
+    membershipType:{
+      type: String,
+      default: "",
+    },
+
+    membershipActiveDate: {
+      type: Date,
+      default: null,
+    },
+
+    membershipEndDate: {
+      type: Date,
+      default: null,
+    },
+
     dailyLimit: {
       type: Number,
       default: 0,

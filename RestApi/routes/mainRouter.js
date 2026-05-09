@@ -39,6 +39,7 @@ router.get("/admin-private-requests", menu.getPrivateRequestsByAdmin);
 
 router.post("/create-order", controller.createRazorpayOrder);
 router.post("/verify-payment", controller.verifyPayment);
+router.post("/verify-membership-payment", controller.verifyMembershipPayment);
 
 // admin
 router.get("/alluser/:role", controller.allactiveuser);

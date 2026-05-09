@@ -738,6 +738,158 @@ exports.verifyPayment = async (req, res) => {
 };
 
 
+exports.verifyMembershipPayment = async (req, res) => {
+
+  try {
+
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      amount,
+      user_id,
+      plan_type
+    } = req.body;
+
+    const body =
+      razorpay_order_id +
+      "|" +
+      razorpay_payment_id;
+
+    const expectedSignature = crypto
+      .createHmac(
+        "sha256",
+        process.env.RAZORPAY_KEY_SECRET
+      )
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature === razorpay_signature) {
+
+      const senderUser = await User.findById(
+        user_id
+      );
+
+      if (!senderUser) {
+
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+
+      }
+
+      const rechargeAmount = Number(amount);
+
+      if (rechargeAmount <= 0) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Invalid amount"
+        });
+
+      }
+
+      // 🔥 MEMBERSHIP DATE CALCULATION
+      const membershipActiveDate = new Date();
+
+      const membershipEndDate = new Date();
+
+      // 🔥 MONTHLY PLAN
+      if (plan_type === "monthly") {
+
+        membershipEndDate.setMonth(
+          membershipEndDate.getMonth() + 1
+        );
+
+      }
+
+      // 🔥 YEARLY PLAN
+      else if (plan_type === "yearly") {
+
+        membershipEndDate.setFullYear(
+          membershipEndDate.getFullYear() + 1
+        );
+
+      }
+
+      // 🔥 UPDATE USER
+      senderUser.membershipStatus = 1;
+
+      senderUser.membershipType = plan_type;
+
+      senderUser.membershipActiveDate =
+        membershipActiveDate;
+
+      senderUser.membershipEndDate =
+        membershipEndDate;
+
+      await senderUser.save();
+
+      // 🔥 SAVE PAYMENT HISTORY
+      await Wallet.create({
+        user_id: user_id,
+
+        amount: rechargeAmount,
+
+        type: "Membership",
+
+        status: "Success",
+
+        payment_id: razorpay_payment_id,
+
+        order_id: razorpay_order_id,
+
+        plan_type: plan_type,
+
+        membership_start_date:
+          membershipActiveDate,
+
+        membership_end_date:
+          membershipEndDate,
+
+        date: new Date()
+      });
+
+      return res.json({
+        success: true,
+
+        message:
+          "Membership activated successfully",
+
+        membershipStatus: 1,
+
+        membershipType: plan_type,
+
+        membershipActiveDate,
+
+        membershipEndDate
+      });
+
+    } else {
+
+      return res.status(400).json({
+        success: false,
+        message: "Invalid signature"
+      });
+
+    }
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
+  }
+
+};
+
+
+
 // All user
 
 exports.allactiveuser = async (req, res) => {

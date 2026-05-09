@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { db } from "../firebase";
-import { ref, push, onChildAdded, off, set } from "firebase/database";
+import { ref, push, onChildAdded, off, set, update, onValue } from "firebase/database";
 import axios from "axios";
 import axiosInstance from "../api/axiosInstance";
 import ENDPOINTS  from "../api/endpoints";
@@ -53,6 +53,166 @@ const [getdailyLimit, setGetDailyLimit] = useState(0);
 const [tokenDate, setTokenDate] = useState(null);
 
 const [showWalletRecharge, setShowWalletRecharge] = useState(false);
+
+const [privateUnreadCount, setPrivateUnreadCount] = useState(0);
+
+
+// ================= NEW STATES =================
+const [chatTab, setChatTab] = useState("public");
+const [privateMessages, setPrivateMessages] = useState([]);
+const [privateMessageInput, setPrivateMessageInput] = useState("");
+const [privateImage, setPrivateImage] = useState(null);
+
+
+
+
+const membershipActive =
+  (user?.membershipStatus === true ||
+    user?.membershipStatus === 1) &&
+    user?.membershipEndDate &&
+    new Date(user?.membershipEndDate) > new Date();
+
+
+// ================= EMOJI =================
+const emojis = ["❤️", "🔥", "😍", "😘", "🥵", "😈", "💋"];
+
+
+// ================= SEND PRIVATE MESSAGE =================
+const sendPrivateMessage = async () => {
+  if (
+    !(
+      user?.membershipStatus === 1 &&
+      user?.membershipEndDate &&
+      new Date(user.membershipEndDate) > new Date()
+    )
+  ) {
+    alert("Ultimate Membership Required");
+    navigate("/ultimate");
+    return;
+  }
+
+  if (!privateMessageInput.trim() && !privateImage) return;
+
+  try {
+    const privateChatRef = ref(
+      db,
+      `privateChats/${id}/${user?._id}`
+    );
+
+    await push(privateChatRef, {
+      user: user?.name || "viewer",
+      text: privateMessageInput || "",
+      image: privateImage || "",
+      time: Date.now(),
+      senderId: user?._id,
+      senderType: "user",   // 👈 user
+      read: false           // 👈 unread by default
+    });
+
+    setPrivateMessageInput("");
+    setPrivateImage(null);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+// ================= PRIVATE CHAT LISTENER =================
+useEffect(() => {
+
+  if (!membershipActive) return;
+
+  const privateChatRef = ref(
+    db,
+    `privateChats/${id}/${user?._id}`
+  );
+
+  const unsubscribe = onValue(
+    privateChatRef,
+    async (snapshot) => {
+
+      const data = snapshot.val();
+
+      if (!data) {
+        setPrivateMessages([]);
+        return;
+      }
+
+      const loadedMessages = Object.entries(data).map(
+        ([key, value]) => ({
+          id: key,
+          ...value
+        })
+      );
+
+      loadedMessages.sort(
+        (a, b) => a.time - b.time
+      );
+
+      setPrivateMessages(loadedMessages);
+
+      // ✅ READ ONLY WHEN PRIVATE TAB OPEN
+      // ✅ unread count always update
+        const unread = loadedMessages.filter(
+          (msg) =>
+            msg.senderType === "creator" &&
+            msg.read !== true
+        ).length;
+
+        setPrivateUnreadCount(unread);
+
+
+        // ✅ READ ONLY WHEN PRIVATE TAB OPEN
+        if (chatTab === "private") {
+
+          loadedMessages.forEach((msg) => {
+
+            if (
+              msg.senderType === "creator" &&
+              msg.read !== true
+            ) {
+
+              const msgRef = ref(
+                db,
+                `privateChats/${id}/${user?._id}/${msg.id}`
+              );
+
+              update(msgRef, {
+                read: true
+              });
+
+            }
+
+          });
+
+        }
+
+    }
+  );
+
+  return () => unsubscribe();
+
+}, [id, membershipActive, chatTab]);
+
+// ================= IMAGE UPLOAD =================
+const handlePrivateImage = (e) => {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    setPrivateImage(reader.result);
+  };
+
+  reader.readAsDataURL(file);
+
+};
+
+
 
 const isTodayToken = (date) => {
 
@@ -539,29 +699,40 @@ useEffect(() => {
 
   useEffect(() => {
 
-    if (!id) return;
+  if (!id) return;
 
-    const chatRef = ref(db, "liveChats/" + id);
+  const chatRef = ref(db, "liveChats/" + id);
 
-    setMessages([]);
+  const unsubscribe = onValue(chatRef, (snapshot) => {
 
-    onChildAdded(chatRef, (snapshot) => {
+    const data = snapshot.val();
 
-      const newMsg = {
-        id: snapshot.key,
-        ...snapshot.val()
-      };
+    if (!data) {
+      setMessages([]);
+      return;
+    }
 
-      setMessages((prev) => [...prev, newMsg]);
+    const loadedMessages = Object.entries(data).map(
+      ([key, value]) => ({
+        id: key,
+        ...value
+      })
+    );
 
-    });
+    loadedMessages.sort(
+      (a, b) => a.time - b.time
+    );
 
-    return () => {
-      off(chatRef);
-    };
+    setMessages(loadedMessages);
 
-  }, [id]);
+  });
 
+  return () => {
+    off(chatRef);
+    unsubscribe();
+  };
+
+}, [id]);
 
   useEffect(() => {
       if (id) {
@@ -717,12 +888,47 @@ useEffect(() => {
           {/* CHAT */}
           <div className="col-12 col-lg-5">
             <div className="bg-white rounded border h-100 d-flex flex-column">
-              <div className="p-3 border-bottom d-flex justify-content-between">
-                <strong>Public Chat</strong>
-                <span className="text-muted">👥 16</span>
-              </div>
+              {/* CHAT HEADER */}
+<div className="border-bottom">
 
-              <div
+  <div className="d-flex">
+
+    <button
+      className={`btn flex-fill rounded-0 ${
+        chatTab === "public"
+          ? "btn-dark"
+          : "btn-light"
+      }`}
+      onClick={() => setChatTab("public")}
+    >
+      Public Chat
+    </button>
+
+    <button
+  className={`btn flex-fill rounded-0 ${
+    chatTab === "private"
+      ? "btn-danger"
+      : "btn-light"
+  }`}
+  onClick={() => setChatTab("private")}
+>
+  Private Chat
+
+  {privateUnreadCount > 0 && (
+    <span className="badge bg-dark ms-2">
+      {privateUnreadCount}
+    </span>
+  )}
+
+</button>
+
+  </div>
+
+</div>
+
+
+{/* CHAT BODY */}
+<div
   ref={chatBoxRef}
   className="p-3 overflow-auto"
   style={{
@@ -731,35 +937,284 @@ useEffect(() => {
   }}
 >
 
-  {messages.map((msg) => (
+  {/* ================= PUBLIC ================= */}
+  {chatTab === "public" && (
+    <>
+      {messages.map((msg) => (
+
+        <div
+          key={msg.id}
+          className="mb-2 p-2 bg-light rounded"
+        >
+          <strong className="text-danger">
+            {msg.user}
+          </strong>
+
+          {msg.image && (
+            <div className="mt-1">
+              <img
+                src={msg.image}
+                alt=""
+                style={{
+                  width: 120,
+                  borderRadius: 10
+                }}
+              />
+            </div>
+          )}
+
+          <div>{msg.text}</div>
+        </div>
+
+      ))}
+    </>
+  )}
+
+
+  {/* ================= PRIVATE ================= */}
+  {chatTab === "private" && (
+
+    <>
+      {!(
+  user?.membershipStatus === 1 &&
+  user?.membershipEndDate &&
+  new Date(user.membershipEndDate) > new Date()
+) ? (
+
+  <div className="h-100 d-flex flex-column justify-content-center align-items-center text-center p-4">
 
     <div
-      key={msg.id}
-      className="mb-2 p-2 bg-light rounded"
+      className="mb-3"
+      style={{
+        fontSize: "55px"
+      }}
     >
-      <strong className="text-danger">
-        {msg.user}
-      </strong> : {msg.text}
+      🔒
     </div>
 
-  ))}
+    <h4 className="fw-bold text-danger">
+      Ultimate Membership Required
+    </h4>
+
+    <p
+      className="text-muted mb-4"
+      style={{
+        maxWidth: 320
+      }}
+    >
+      Activate Ultimate Membership to unlock
+      Private Chat, Image Sharing & Emojis.
+    </p>
+
+    <button
+      className="btn btn-warning fw-bold px-4 py-2 rounded-pill"
+      onClick={() => navigate("/membership")}
+    >
+      👑 GO ULTIMATE
+    </button>
+
+  </div>
+
+) : (
+
+  <>
+    {privateMessages.length === 0 ? (
+
+      <div className="h-100 d-flex justify-content-center align-items-center text-muted">
+        No private messages yet
+      </div>
+
+    ) : (
+
+      privateMessages.map((msg) => (
+
+        <div
+          key={msg.id}
+          className={`mb-2 p-2 rounded ${
+            msg.senderId === user?._id
+              ? "bg-danger text-white ms-auto"
+              : "bg-light"
+          }`}
+          style={{
+            maxWidth: "85%",
+            width: "fit-content"
+          }}
+        >
+
+          {/* <strong className="d-block mb-2">
+            {msg.user}
+          </strong> */}
+
+          {msg.image && (
+
+            <div className="mb-2">
+
+              <img
+                src={msg.image}
+                alt=""
+                style={{
+                  width: 140,
+                  maxWidth: "100%",
+                  borderRadius: 10,
+                  objectFit: "cover"
+                }}
+              />
+
+            </div>
+
+          )}
+
+          {msg.text && <div>{msg.text}</div>}
+
+          {msg.senderId === user?._id && (
+            <small
+              style={{
+                fontSize: 11,
+                display: "block",
+                textAlign: "right",
+                marginTop: 4
+              }}
+            >
+              {msg.read ? "✓✓ Read" : "✓ Sent"}
+            </small>
+          )}
+
+        </div>
+
+      ))
+
+    )}
+  </>
+
+)}
+    </>
+  )}
 
 </div>
 
-              <div className="border-top p-2 d-flex gap-2">
-                <input
-              className="form-control"
-              placeholder="Public message..."
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendMessage();
-                }
-              }}
-            />
-                <button className="btn btn-dark" onClick={sendMessage}>➤</button>
-              </div>
+
+{/* ================= CHAT INPUT ================= */}
+{chatTab === "public" && (
+
+  <div className="border-top p-2 d-flex gap-2">
+
+    <input
+      className="form-control"
+      placeholder="Public message..."
+      value={messageInput}
+      onChange={(e) =>
+        setMessageInput(e.target.value)
+      }
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          sendMessage();
+        }
+      }}
+    />
+
+    <button
+      className="btn btn-dark"
+      onClick={sendMessage}
+    >
+      ➤
+    </button>
+
+  </div>
+)}
+
+
+{/* ================= PRIVATE INPUT ================= */}
+{/* ================= PRIVATE INPUT ================= */}
+{chatTab === "private" &&
+  user?.membershipStatus === 1 &&
+  user?.membershipEndDate &&
+  new Date(user.membershipEndDate) > new Date() && (
+
+    <div className="border-top p-2">
+
+      {/* IMAGE PREVIEW */}
+      {privateImage && (
+
+        <div className="mb-2">
+
+          <img
+            src={privateImage}
+            alt=""
+            style={{
+              width: 80,
+              borderRadius: 10
+            }}
+          />
+
+        </div>
+
+      )}
+
+      {/* EMOJIS */}
+      <div className="d-flex gap-2 mb-2 flex-wrap">
+
+        {emojis.map((emoji) => (
+
+          <button
+            key={emoji}
+            className="btn btn-light btn-sm"
+            onClick={() =>
+              setPrivateMessageInput(
+                (prev) => prev + emoji
+              )
+            }
+          >
+            {emoji}
+          </button>
+
+        ))}
+
+      </div>
+
+      <div className="d-flex gap-2">
+
+        {/* IMAGE */}
+        <label className="btn btn-outline-secondary mb-0">
+
+          📷
+
+          <input
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handlePrivateImage}
+          />
+
+        </label>
+
+        {/* TEXT */}
+        <input
+          className="form-control"
+          placeholder="Private message..."
+          value={privateMessageInput}
+          onChange={(e) =>
+            setPrivateMessageInput(e.target.value)
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              sendPrivateMessage();
+            }
+          }}
+        />
+
+        {/* SEND */}
+        <button
+          className="btn btn-danger"
+          onClick={sendPrivateMessage}
+        >
+          ➤
+        </button>
+
+      </div>
+
+    </div>
+
+)}
             </div>
           </div>
         </div>

@@ -518,10 +518,10 @@ const styles = {
     display: "flex",
     gap: "10px",
   },
-  previewImage:{
-    width: '30%',
-    marginTop:'20px'
-  },
+  // previewImage:{
+  //   width: '30%',
+  //   marginTop:'20px'
+  // },
 
   imageUploadCard: {
     padding: "18px",
@@ -584,7 +584,9 @@ const styles = {
   },
 
   previewImage: {
-    width: "150px",
+    width: '30%',
+    marginTop:'20px',
+    // width: "150px",
     borderRadius: "10%",
     objectFit: "cover",
     border: "3px solid #3b82f6",

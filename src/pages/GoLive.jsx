@@ -7,7 +7,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { GoLiveVideo, getLiveStatus } from "../redux/slices/authSlice";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { db } from "../firebase";
-import { ref, push, onChildAdded, off } from "firebase/database";
+// import { ref, push, onChildAdded, off } from "firebase/database";
+
+import {
+  ref,
+  push,
+  onChildAdded,
+  onValue,
+  off,
+  set
+} from "firebase/database";
 
 export default function GoLive() {
   const dispatch = useDispatch();
@@ -31,6 +40,269 @@ export default function GoLive() {
   const [messages, setMessages] = useState([]);
 const [messageInput, setMessageInput] = useState("");
 const chatBoxRef = useRef(null);
+
+
+
+// ================= NEW STATES =================
+const [chatTab, setChatTab] = useState("public");
+
+const [privateUsers, setPrivateUsers] = useState([]);
+const [selectedPrivateUser, setSelectedPrivateUser] = useState(null);
+
+const [privateMessages, setPrivateMessages] = useState([]);
+const [privateMessageInput, setPrivateMessageInput] = useState("");
+
+const [unreadCounts, setUnreadCounts] = useState({});
+
+const privateChatBoxRef = useRef(null);
+
+
+
+const chatRoomId = user?._id;
+
+
+// ================= NEW STATES =================
+const [privateImage, setPrivateImage] = useState(null);
+
+
+// ================= IMAGE UPLOAD =================
+const handlePrivateImage = (e) => {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    setPrivateImage(reader.result);
+  };
+
+  reader.readAsDataURL(file);
+
+};
+
+// ================= LOAD PRIVATE USERS =================
+useEffect(() => {
+
+  
+  if (!chatRoomId) return;
+
+  const privateRootRef = ref(
+    db,
+    `privateChats/${chatRoomId}`
+  );
+
+  setPrivateUsers([]);
+
+  onChildAdded(privateRootRef, (snapshot) => {
+
+    const userId = snapshot.key;
+
+    if (!userId) return;
+
+    // 🔥 user message room
+    const roomRef = ref(
+      db,
+      `privateChats/${chatRoomId}/${userId}`
+    );
+
+    let lastMsg = null;
+    let unread = 0;
+
+    onChildAdded(roomRef, (msgSnap) => {
+
+      const msg = msgSnap.val();
+
+      lastMsg = msg;
+
+      // 🔥 unread count
+      // 🔥 unread count
+if (
+  !msg.read &&
+  msg.senderType === "user"
+) {
+  unread++;
+}
+
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [userId]: unread
+      }));
+
+      setPrivateUsers((prev) => {
+
+        const filtered = prev.filter(
+          (u) => u.userId !== userId
+        );
+
+        return [
+          {
+            userId,
+            name: msg.user || "User",
+            lastMessage: msg.text || "📷 Image",
+            lastTime: msg.time || Date.now()
+          },
+          ...filtered
+        ].sort((a, b) => b.lastTime - a.lastTime);
+
+      });
+
+    });
+
+  });
+
+  return () => {
+    off(privateRootRef);
+  };
+
+}, [chatRoomId]);
+
+
+// 🔥 AUTO READ UPDATE (CREATOR OPEN CHAT)
+useEffect(() => {
+
+  if (!selectedPrivateUser) return;
+
+  const privateRef = ref(
+    db,
+    `privateChats/${chatRoomId}/${selectedPrivateUser}`
+  );
+
+  const unsubscribe = onValue(
+    privateRef,
+    async (snapshot) => {
+
+      const data = snapshot.val();
+
+      if (!data) {
+        setPrivateMessages([]);
+        return;
+      }
+
+      const msgs = Object.entries(data).map(
+        ([key, value]) => ({
+          id: key,
+          ...value
+        })
+      );
+
+      msgs.sort((a, b) => a.time - b.time);
+
+      setPrivateMessages(msgs);
+
+      // ✅ READ UPDATE
+      msgs.forEach((msg) => {
+
+        if (
+          msg.senderType === "user" &&
+          msg.read !== true
+        ) {
+
+          const msgRef = ref(
+            db,
+            `privateChats/${chatRoomId}/${selectedPrivateUser}/${msg.id}`
+          );
+
+          set(msgRef, {
+            ...msg,
+            read: true
+          });
+
+        }
+
+      });
+
+    }
+  );
+
+  // ✅ unread clear
+  setUnreadCounts((prev) => ({
+    ...prev,
+    [selectedPrivateUser]: 0
+  }));
+
+  return () => unsubscribe();
+
+}, [selectedPrivateUser, chatRoomId]);
+// ================= LOAD PRIVATE MESSAGES =================
+useEffect(() => {
+
+  if (!selectedPrivateUser) return;
+
+  const privateRef = ref(
+    db,
+    `privateChats/${chatRoomId}/${selectedPrivateUser}`
+  );
+
+  setPrivateMessages([]);
+
+  onChildAdded(privateRef, async (snapshot) => {
+
+    const msg = {
+      id: snapshot.key,
+      ...snapshot.val()
+    };
+
+    setPrivateMessages((prev) => [...prev, msg]);
+
+  });
+
+  // 🔥 unread clear
+  setUnreadCounts((prev) => ({
+    ...prev,
+    [selectedPrivateUser]: 0
+  }));
+
+  return () => {
+    off(privateRef);
+  };
+
+}, [selectedPrivateUser]);
+
+// ================= AUTO SCROLL =================
+useEffect(() => {
+
+  if (privateChatBoxRef.current) {
+
+    privateChatBoxRef.current.scrollTop =
+      privateChatBoxRef.current.scrollHeight;
+
+  }
+
+}, [privateMessages]);
+
+
+// ================= SEND PRIVATE MESSAGE =================
+// ================= SEND PRIVATE MESSAGE =================
+const sendPrivateMessage = async () => {
+
+  if (
+    !privateMessageInput.trim() &&
+    !privateImage
+  ) return;
+
+  if (!selectedPrivateUser) return;
+
+  const privateRef = ref(
+    db,
+    `privateChats/${chatRoomId}/${selectedPrivateUser}`
+  );
+
+  await push(privateRef, {
+    user: user?.username,
+    text: privateMessageInput || "",
+    image: privateImage || "",
+    time: Date.now(),
+    senderId: user?._id,
+    senderType: "creator", // 🔥 creator
+    read: false
+  });
+
+  setPrivateMessageInput("");
+  setPrivateImage(null);
+
+};
 
 
 
@@ -263,7 +535,7 @@ const remaining = dailyLimit - getDailyLimit;
     setCamOn(!camOn);
   };
 
-  const chatRoomId = user?._id;
+  // const chatRoomId = user?._id;
 
   const sendMessage = async () => {
 
@@ -461,76 +733,424 @@ useEffect(() => {
             </div>
 
             {/* CHAT */}
+            {/* CHAT */}
+<div
+  className="p-2 p-md-3"
+  style={{
+    width: "100%",
+    maxWidth: 360,
+    background: "#020617",
+    borderLeft:
+      window.innerWidth >= 768
+        ? "1px solid #1e293b"
+        : "none",
+    borderTop:
+      window.innerWidth < 768
+        ? "1px solid #1e293b"
+        : "none",
+  }}
+>
+
+  {/* TABS */}
+  <ul className="nav nav-pills mb-3">
+
+    <li className="nav-item me-2">
+
+      <button
+        onClick={() => setChatTab("public")}
+        className={`nav-link ${
+          chatTab === "public"
+            ? "active"
+            : ""
+        }`}
+      >
+        🌍 Public
+      </button>
+
+    </li>
+
+    <li className="nav-item">
+
+      <button
+        onClick={() => setChatTab("private")}
+        className={`nav-link ${
+          chatTab === "private"
+            ? "active"
+            : ""
+        }`}
+      >
+        🔒 Private
+
+        {Object.values(unreadCounts).reduce(
+          (a, b) => a + b,
+          0
+        ) > 0 && (
+
+          <span className="badge bg-danger ms-2">
+
+            {Object.values(unreadCounts).reduce(
+              (a, b) => a + b,
+              0
+            )}
+
+          </span>
+
+        )}
+
+      </button>
+
+    </li>
+
+  </ul>
+
+  {/* ================= PUBLIC CHAT ================= */}
+  {chatTab === "public" && (
+    <>
+
+      <div
+        ref={chatBoxRef}
+        className="rounded-3 p-3 mb-3"
+        style={{
+          height:
+            window.innerWidth < 768
+              ? "40vh"
+              : "60vh",
+          background: "#020617",
+          border: "1px solid #1e293b",
+          overflowY: "auto",
+        }}
+      >
+
+        {messages.map((msg) => (
+
+          <div
+            key={msg.id}
+            className="mb-2"
+          >
+
+            <strong
+              className={
+                msg.user === user?.username
+                  ? "text-danger"
+                  : "text-warning"
+              }
+            >
+              {msg.user}:
+            </strong>
+
+            <span className="ms-2">
+              {msg.text}
+            </span>
+
+          </div>
+
+        ))}
+
+      </div>
+
+      <div className="d-flex gap-2">
+
+        <input
+          className="form-control form-control-sm bg-dark text-white border-secondary"
+          placeholder="Type message..."
+          value={messageInput}
+          onChange={(e) =>
+            setMessageInput(e.target.value)
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter")
+              sendMessage();
+          }}
+        />
+
+        <button
+          className="btn btn-danger btn-sm"
+          onClick={sendMessage}
+        >
+          Send
+        </button>
+
+      </div>
+
+    </>
+  )}
+
+  {/* ================= PRIVATE CHAT ================= */}
+  {chatTab === "private" && (
+
+    <div className="d-flex flex-column h-100">
+
+      {/* USER LIST */}
+      {!selectedPrivateUser && (
+
+        <div
+          style={{
+            height:
+              window.innerWidth < 768
+                ? "45vh"
+                : "65vh",
+            overflowY: "auto"
+          }}
+        >
+
+          {privateUsers.length === 0 && (
+
+            <div className="text-center text-muted mt-5">
+              No private chats
+            </div>
+
+          )}
+
+          {privateUsers.map((u) => (
+
             <div
-              className="p-2 p-md-3"
+              key={u.userId}
+              onClick={() =>
+                setSelectedPrivateUser(
+                  u.userId
+                )
+              }
+              className="p-3 mb-2 rounded"
               style={{
-                width: "100%",
-                maxWidth: 360,
-                background: "#020617",
-                borderLeft: window.innerWidth >= 768 ? "1px solid #1e293b" : "none",
-                borderTop: window.innerWidth < 768 ? "1px solid #1e293b" : "none",
+                background: "#0f172a",
+                cursor: "pointer",
+                border:
+                  "1px solid #1e293b"
               }}
             >
-              <ul className="nav nav-pills mb-3">
-                <li className="nav-item">
-                  <button className="nav-link active">🌍 Public</button>
-                </li>
-                <li className="nav-item">
-                  <button className="nav-link">🔒 Private</button>
-                </li>
-              </ul>
 
-             <div
-                ref={chatBoxRef}
-                className="rounded-3 p-3 mb-3"
-                style={{
-                  height: window.innerWidth < 768 ? "40vh" : "60vh",
-                  background: "#020617",
-                  border: "1px solid #1e293b",
-                  overflowY: "auto",
-                }}
+              <div className="d-flex justify-content-between">
+
+                <strong className="text-light">
+                  {u.name}
+                </strong>
+
+                {unreadCounts[u.userId] >
+                  0 && (
+
+                  <span className="badge bg-danger">
+
+                    {
+                      unreadCounts[
+                        u.userId
+                      ]
+                    }
+
+                  </span>
+
+                )}
+
+              </div>
+
+              <div
+                className="text-secondary small text-truncate"
               >
-
-                {messages.map((msg) => (
-
-                  <div key={msg.id} className="mb-2">
-
-                    <strong
-                      className={
-                        msg.user === user?.username
-                          ? "text-danger"
-                          : "text-warning"
-                      }
-                    >
-                      {msg.user}:
-                    </strong>
-
-                    <span className="ms-2">{msg.text}</span>
-
-                  </div>
-
-                ))}
-
+                {u.lastMessage}
               </div>
-              <div className="d-flex gap-2">
-                <input
-                  className="form-control form-control-sm bg-dark text-white border-secondary"
-                  placeholder="Type message..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") sendMessage();
-                  }}
-                />
 
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={sendMessage}
-                >
-                  Send
-                </button>
-              </div>
             </div>
+
+          ))}
+
+        </div>
+
+      )}
+
+      {/* MESSAGE BOX */}
+      {selectedPrivateUser && (
+        <>
+
+          {/* HEADER */}
+          <div className="d-flex align-items-center justify-content-between mb-2">
+
+            <button
+              className="btn btn-sm btn-outline-light"
+              onClick={() =>
+                setSelectedPrivateUser(null)
+              }
+            >
+              ← Back
+            </button>
+
+            <strong>
+              Private Chat
+            </strong>
+
+          </div>
+
+          {/* MESSAGES */}
+          {/* MESSAGES */}
+<div
+  ref={privateChatBoxRef}
+  className="rounded-3 p-3 mb-3"
+  style={{
+    height:
+      window.innerWidth < 768
+        ? "35vh"
+        : "55vh",
+    background: "#020617",
+    border:
+      "1px solid #1e293b",
+    overflowY: "auto",
+  }}
+>
+
+  {privateMessages.map((msg) => (
+
+    <div
+      key={msg.id}
+      className={`mb-3 d-flex ${
+        msg.senderType === "creator"
+          ? "justify-content-end"
+          : "justify-content-start"
+      }`}
+    >
+
+      <div
+        style={{
+          maxWidth: "80%",
+          background:
+            msg.senderType === "creator"
+              ? "#dc3545"
+              : "#1e293b",
+          color: "#fff",
+          padding:
+            "10px 14px",
+          borderRadius: 14,
+          wordBreak:
+            "break-word"
+        }}
+      >
+
+        {/* USER NAME */}
+        <div className="small fw-bold mb-1">
+
+          {msg.senderType === "creator"
+            ? "👑 You"
+            : `💖 ${msg.user}`}
+
+        </div>
+
+        {/* TEXT */}
+        {msg.text && (
+          <div>
+            {msg.text}
+          </div>
+        )}
+
+        {/* IMAGE */}
+        {msg.image && (
+          <img
+            src={msg.image}
+            alt="chat-img"
+            style={{
+              width: "100%",
+              maxWidth: "220px",
+              borderRadius: "10px",
+              marginTop: "8px",
+              objectFit: "cover"
+            }}
+          />
+        )}
+
+        {/* READ STATUS */}
+        {msg.senderType === "creator" && (
+          <div
+            className="text-end mt-1"
+            style={{
+              fontSize: 11,
+              opacity: 0.8
+            }}
+          >
+            {msg.read ? "✓✓ Seen" : "✓ Sent"}
+          </div>
+        )}
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+          {/* INPUT */}
+          {/* INPUT */}
+<div className="d-flex flex-column gap-2">
+
+  {/* IMAGE PREVIEW */}
+  {privateImage && (
+
+    <div>
+
+      <img
+        src={privateImage}
+        alt=""
+        style={{
+          width: 80,
+          borderRadius: 10
+        }}
+      />
+
+    </div>
+
+  )}
+
+  <div className="d-flex gap-2">
+
+    {/* IMAGE BUTTON */}
+    <label className="btn btn-outline-light btn-sm mb-0">
+
+      📷
+
+      <input
+        type="file"
+        hidden
+        accept="image/*"
+        onChange={handlePrivateImage}
+      />
+
+    </label>
+
+    {/* INPUT */}
+    <input
+      className="form-control form-control-sm bg-dark text-white border-secondary"
+      placeholder="Type private message..."
+      value={privateMessageInput}
+      onChange={(e) =>
+        setPrivateMessageInput(
+          e.target.value
+        )
+      }
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          sendPrivateMessage();
+        }
+      }}
+    />
+
+    {/* SEND */}
+    <button
+      className="btn btn-danger btn-sm"
+      onClick={
+        sendPrivateMessage
+      }
+    >
+      Send
+    </button>
+
+  </div>
+
+</div>
+
+        </>
+      )}
+
+    </div>
+
+  )}
+
+</div>
           </div>
 
           {/* TOKEN GOAL */}

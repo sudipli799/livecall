@@ -60,6 +60,8 @@ import UserPrivateRoom from "./pages/UserPrivateRoom";
 import MyShowRequest from "./pages/MyShowRequest";
 import AdminPrivateShow from "./pages/admin/AdminPrivateShow";
 import AdminMonitor from "./pages/admin/AdminMonitor";
+import Ultimate from "./pages/Ultimate";
+import WalletRecharge from "./pages/WalletRecharge";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -193,6 +195,20 @@ function App() {
         path="/creator/private-request"
         element={
           token ? <MyShowRequest /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/ultimate"
+        element={
+          token ? <Ultimate /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/wallet"
+        element={
+          token ? <WalletRecharge /> : <Navigate to="/login" replace />
         }
       />
 

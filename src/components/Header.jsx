@@ -86,17 +86,100 @@ function Header() {
             </>
           ) : (
             <div className="d-flex align-items-center gap-2">
+
+              {user?.membershipStatus === 1 &&
+                user?.membershipEndDate &&
+                new Date(user.membershipEndDate) > new Date() ? (
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {/* 🔥 DAYS LEFT */}
+                    <div
+                      style={{
+                        background: "#111",
+                        color: "#fff",
+                        padding: "8px 14px",
+                        borderRadius: "999px",
+                        fontSize: "13px",
+                        fontWeight: "700",
+                      }}
+                    >
+                      ⏳{" "}
+                      {Math.ceil(
+                        (new Date(user.membershipEndDate) -
+                          new Date()) /
+                          (1000 * 60 * 60 * 24)
+                      )}{" "}
+                      Days Left
+                    </div>
+
+                    
+                    {/* 🔥 MONTHLY => SHOW UPGRADE */}
+                    {user?.membershipType === "monthly" && (
+                      <Link
+                        to="/ultimate"
+                        className="btn btn-warning rounded-pill fw-bold px-3"
+                        style={{
+                          fontSize: "13px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ⬆ Upgrade Plan
+                      </Link>
+                    )}
+                  </div>
+
+                ) : (
+
+                  <Link
+                    to="/ultimate"
+                    className="btn btn-warning rounded-pill fw-bold px-3"
+                    style={{
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    🚀 GO ULTIMATE
+                  </Link>
+
+                )}
+
               <Link
-                to="/creator/dashboard"
-                className="fw-bold text-dark text-decoration-none"
-              >
-                {user?.name}
-              </Link>
+                  to="/creator/dashboard"
+                  className="fw-bold text-dark text-decoration-none d-flex align-items-center gap-1"
+                >
+                  {user?.name}
+
+                  {/* 👑 MEMBERSHIP CROWN */}
+                  {user?.membershipStatus === 1 &&
+                    user?.membershipEndDate &&
+                    new Date(user?.membershipEndDate) >
+                      new Date() && (
+                      <span
+                        style={{
+                          fontSize: "16px",
+                        }}
+                      >
+                        👑
+                      </span>
+                    )}
+                </Link>
 
               {/* WALLET */}
-              <span className="badge bg-success">
-                💰 {user?.wallet || 0}
-              </span>
+              <Link
+                to="/wallet"
+                className="text-decoration-none"
+              >
+                <span className="badge bg-success">
+                  💰 {user?.wallet || 0}
+                </span>
+              </Link>
 
               {/* ✅ LOGOUT ICON */}
               <button
