@@ -12,8 +12,9 @@ export default function AgentSidebar() {
     { icon: "👥", label: "My Users", path: "/agent/users" },
     { icon: "➕", label: "Add User", path: "/agent/add-user" },
     { icon: "🔴", label: "Live", path: "/agent/live" },
-    // { icon: "📄", label: "User Reports", path: "/agent/reports" },
+    { icon: "📄", label: "Withdrawal", path: "/agent/withdrawal" },
     // { icon: "⚙️", label: "Settings", path: "/agent/settings" },
+    { icon: "⚙️", label: "Settings", path: "/agent/settings" },
   ];
 
   // ✅ ROLE CHECK

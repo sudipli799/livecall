@@ -180,6 +180,10 @@ export default function AdminWithdraw() {
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Payment ID</th>
+                        <th>Bank</th>
+                        <th>Ac No</th>
+                        <th>ifsc</th>
+                        <th>UPI</th>
                         <th>Date</th>
                         <th>Action</th>
                       </tr>
@@ -230,6 +234,18 @@ export default function AdminWithdraw() {
 
                           <td style={{ fontSize: 12 }}>
                             {item.payment_id}
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {item.bank_name}
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {item.account_number}
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {item.ifsc_code}
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {item.upi_id}
                           </td>
 
                           <td style={{ fontSize: 13 }}>

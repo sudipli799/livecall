@@ -31,7 +31,7 @@ export default function AgentAddUser() {
     email: "",
     password: "",
     role: "creator", // ✅ agent se user create hoga
-    vendor_id: user?.username || localStorage.getItem("username"),
+    vendor_id: user?._id || localStorage.getItem("username"),
     gender: "",
     country: "",
   });

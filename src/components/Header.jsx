@@ -304,6 +304,12 @@ const menuItems = (mobile = false, closeMenu) => (
     </li>
 
     <li className="nav-item">
+      <Link className="nav-link text-warning fw-semibold" to="/vipuser" onClick={closeMenu}>
+        👑 VIP USER
+      </Link>
+    </li>
+
+    <li className="nav-item">
       <Link className="nav-link text-white fw-semibold" to="/nudechat" onClick={closeMenu}>
         💬 NUDE CHAT
       </Link>

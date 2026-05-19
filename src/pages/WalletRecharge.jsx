@@ -7,14 +7,10 @@ import ENDPOINTS from "../api/endpoints";
 import { updateWallet } from "../redux/slices/authSlice";
 
 const rechargePlans = [
-  10,
   50,
   100,
   200,
-  500,
-  1000,
-  2000,
-  5000,
+  500
 ];
 
 const WalletRecharge = () => {
@@ -63,6 +59,11 @@ const WalletRecharge = () => {
 
     if (!amount || amount < 1) {
       alert("Minimum recharge 1 token");
+      return;
+    }
+
+    if (amount > 500) {
+      alert("Maximum recharge limit is 500 tokens");
       return;
     }
 

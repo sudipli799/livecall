@@ -34,6 +34,12 @@ router.get("/user-private-requests/:my_id", menu.getPrivateRequestsByUser);
 router.get("/private-requests/:id", menu.getPrivateRequest);
 router.put("/start-private-show/:id", menu.startPrivateShow);
 router.put("/complete-private-show/:id", menu.completePrivateShow);
+router.post("/vip-access", menu.createVipAccess);
+router.post("/addbank", menu.addBankAccount);
+
+router.get("/banklist/:user_id", menu.getBankAccounts);
+
+router.put("/update-bank-status/:id", menu.updateBankStatus);
 
 router.get("/admin-private-requests", menu.getPrivateRequestsByAdmin);
 

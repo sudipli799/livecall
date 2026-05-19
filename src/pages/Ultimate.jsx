@@ -67,7 +67,7 @@ const plans = [
     id: 1,
     name: "Monthly Plan",
     plan_type: "monthly",
-    price: 499,
+    price: 999,
     duration: "/ Month",
     badge: "MOST POPULAR",
     features: [
@@ -82,7 +82,7 @@ const plans = [
     id: 2,
     name: "Yearly Plan",
     plan_type: "yearly",
-    price: 3999,
+    price: 5999,
     duration: "/ Year",
     badge: "BEST VALUE",
     features: [
@@ -160,9 +160,9 @@ const remainingDays =
     membershipEndDate > now
   ) {
 
-    const monthlyPrice = 499;
+    const monthlyPrice = 999;
 
-    const yearlyPrice = 3999;
+    const yearlyPrice = 5999;
 
     // 🔥 DAILY VALUE
     const dailyValue =

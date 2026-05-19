@@ -62,6 +62,10 @@ import AdminPrivateShow from "./pages/admin/AdminPrivateShow";
 import AdminMonitor from "./pages/admin/AdminMonitor";
 import Ultimate from "./pages/Ultimate";
 import WalletRecharge from "./pages/WalletRecharge";
+import CreatorSettings from "./pages/CreatorSettings";
+import VipUser from "./pages/VipUser";
+import AgentWithdrawal from "./pages/agent/AgentWithdrawal";
+import AgentSettings from "./pages/agent/AgentSettings";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -99,6 +103,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/liveuser" element={<LiveUser />} />
                 <Route path="/premiumuser" element={<PremiumUser/>} />
+                <Route path="/vipuser" element={<VipUser/>} />
                 <Route path="/nudechat" element={<NudeChat/>} />
                 <Route path="/creator" element={<Creators/>} />
                 <Route path="/about" element={<About />} />
@@ -146,6 +151,8 @@ function App() {
       <Route path="/agent/reports" element={<AgentUserReports />} />
       <Route path="/agent/live" element={<AgentLive />} />
       <Route path="/agent/add-user" element={<AgentAddUser />} />
+      <Route path="/agent/withdrawal" element={<AgentWithdrawal />} />
+      <Route path="/agent/settings" element={<AgentSettings />} />
       
 
 
@@ -195,6 +202,13 @@ function App() {
         path="/creator/private-request"
         element={
           token ? <MyShowRequest /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/creator/settings"
+        element={
+          token ? <CreatorSettings /> : <Navigate to="/login" replace />
         }
       />
 

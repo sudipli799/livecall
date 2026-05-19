@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import CreatorSidebar from "../components/CreatorSidebar";
+// import CreatorSidebar from "../../components/CreatorSidebar";
 import { useSelector } from "react-redux";
-import axiosInstance from "../api/axiosInstance";
-import ENDPOINTS from "../api/endpoints";
+import axiosInstance from "../../api/axiosInstance";
+import ENDPOINTS from "../../api/endpoints";
+import AgentSidebar from "../../components/AgentSidebar";
 
-export default function CreatorWithdrawal() {
+export default function AgentWithdrawal() {
   const { user } = useSelector((state) => state.auth);
 
   const [search, setSearch] = useState("");
@@ -48,8 +49,6 @@ export default function CreatorWithdrawal() {
     }
 
   }, [user]);
-  
-
   const perPage = 6;
 
   const handleWithdraw = async () => {
@@ -125,7 +124,7 @@ export default function CreatorWithdrawal() {
   return (
     <div className="container-fluid">
       <div className="row min-vh-100">
-        <CreatorSidebar />
+        <AgentSidebar />
 
         <div className="col-12 col-md-9 col-lg-10 p-4"
           style={{ background: "linear-gradient(135deg,#eef2ff,#f8fafc)" }}>
@@ -135,16 +134,16 @@ export default function CreatorWithdrawal() {
           {/* 🔥 CARDS (DYNAMIC) */}
           <div className="row g-3 mb-4">
 
-            <Card title="Available Balance" value={stats?.availableAmount || 0} gradient="linear-gradient(135deg,#22c55e,#16a34a)" />
+            {/* <Card title="Available Balance" value={stats?.availableAmount || 0} gradient="linear-gradient(135deg,#22c55e,#16a34a)" /> */}
             
-            <Card title="Total Earning" value={
+            <Card title="Withdrawal Amount" value={
                     Number(stats?.availableAmount || 0) - 
                     Number(stats?.totalWithdrawal || 0)
                 } gradient="linear-gradient(135deg,#6366f1,#4f46e5)" />
             
             <Card title="Total Withdrawal" value={stats?.totalWithdrawal || 0} gradient="linear-gradient(135deg,#f59e0b,#d97706)" />
             
-            <Card title="Today Earning" value={stats?.todayEarning || 0} gradient="linear-gradient(135deg,#ec4899,#db2777)" />
+            {/* <Card title="Today Earning" value={stats?.todayEarning || 0} gradient="linear-gradient(135deg,#ec4899,#db2777)" /> */}
             
             <Card title="Today Withdrawal" value={stats?.todayWithdrawal || 0} gradient="linear-gradient(135deg,#ef4444,#dc2626)" />
             
@@ -384,7 +383,7 @@ export default function CreatorWithdrawal() {
 
 // 🔥 CARD
 const Card = ({ title, value, gradient }) => (
-  <div className="col-6 col-md-2">
+  <div className="col-6 col-md-3">
     <div
       style={{
         background: gradient,

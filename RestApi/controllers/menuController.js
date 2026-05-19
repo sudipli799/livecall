@@ -1,5 +1,5 @@
 const { RtcTokenBuilder, RtcRole } = require("agora-token");
-const { Menu, MyTip, PrivateShow, Wallet, Withdrawal, Setting  } = require("../models/TipModel");
+const { Menu, MyTip, PrivateShow, Wallet, Withdrawal, Setting, VipAccess, BankAccount  } = require("../models/TipModel");
 const User = require("../models/MainModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -133,113 +133,271 @@ SUBMIT TOKEN
 ==============================
 */
 exports.submitToken = async (req, res) => {
-    try {
 
-      const { sender_id, token, type, msg, myid } = req.body;
+  try {
 
-      if (!sender_id || !token || !msg || !myid) {
-        return res.status(400).json({
-          success: false,
-          message: "All fields required",
-        });
-      }
+    const {
+      sender_id,
+      token,
+      type,
+      msg,
+      myid
+    } = req.body;
 
-      // sender user
-      const senderUser = await User.findById(sender_id);
+    // ==========================
+    // VALIDATION
+    // ==========================
+    if (
+      !sender_id ||
+      !token ||
+      !msg ||
+      !myid
+    ) {
 
-      if (!senderUser) {
-        return res.status(404).json({
-          success: false,
-          message: "Sender not found",
-        });
-      }
-
-      // receiver user
-      const receiverUser = await User.findById(myid);
-
-      if (!receiverUser) {
-        return res.status(404).json({
-          success: false,
-          message: "Receiver not found",
-        });
-      }
-
-      const amount = Number(token);
-
-      // wallet check
-      if (Number(senderUser.wallet) < amount) {
-        return res.status(400).json({
-          success: false,
-          message: "Insufficient wallet balance",
-        });
-      }
-
-      /*
-      ==========================
-      💰 CALCULATION
-      ==========================
-      */
-      const adminCommission = Number((amount * 30) / 100);
-      const creatorAmount = amount - adminCommission;
-
-      // tip create
-      const tip = await MyTip.create({
-        sender_id,
-        token: amount,
-        type: type || "Tip",
-        msg,
-        myid,
-        adminCommission,
-        creatorAmount,
-        date: new Date(),
-      });
-
-      /*
-      ==========================
-      WALLET UPDATE
-      ==========================
-      */
-
-      // sender wallet minus full
-      senderUser.wallet = Number(senderUser.wallet) - amount;
-      await senderUser.save();
-
-      // receiver gets ONLY 70%
-      receiverUser.wallet =
-        Number(receiverUser.wallet || 0) + creatorAmount;
-
-      // optional stats
-      receiverUser.getdailyLimit =
-        Number(receiverUser.getdailyLimit || 0) + Number(token);;
-
-      // 💡 30% commission store in user table
-      receiverUser.adminCommission =
-        Number(receiverUser.adminCommission || 0) + adminCommission;
-
-      await receiverUser.save();
-
-      res.status(201).json({
-        success: true,
-        message: "Token Submitted Successfully",
-        data: tip,
-
-        breakdown: {
-          total: amount,
-          adminCommission,
-          creatorAmount,
-        },
-
-        senderWallet: senderUser.wallet,
-        receiverWallet: receiverUser.wallet,
-      });
-
-    } catch (error) {
-      res.status(500).json({
+      return res.status(400).json({
         success: false,
-        message: error.message,
+        message: "All fields required",
       });
+
     }
-  };
+
+    // ==========================
+    // SENDER USER
+    // ==========================
+    const senderUser =
+      await User.findById(sender_id);
+
+    if (!senderUser) {
+
+      return res.status(404).json({
+        success: false,
+        message: "Sender not found",
+      });
+
+    }
+
+    // ==========================
+    // RECEIVER USER
+    // ==========================
+    const receiverUser =
+      await User.findById(myid);
+
+    if (!receiverUser) {
+
+      return res.status(404).json({
+        success: false,
+        message: "Receiver not found",
+      });
+
+    }
+
+    const amount = Number(token);
+
+    // ==========================
+    // WALLET CHECK
+    // ==========================
+    if (
+      Number(senderUser.wallet || 0) < amount
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+      });
+
+    }
+
+    // ==========================
+    // AGENT CHECK
+    // ==========================
+    let agentUser = null;
+
+    if (receiverUser.vendor_id) {
+
+      agentUser = await User.findById(
+        receiverUser.vendor_id
+      );
+
+    }
+
+    /*
+    ====================================
+    COMMISSION CALCULATION
+    ====================================
+    */
+
+    let adminCommission = 0;
+
+    let agentCommission = 0;
+
+    let creatorAmount = 0;
+
+    // ====================================
+    // NO AGENT
+    // ADMIN = 65%
+    // CREATOR = 35%
+    // ====================================
+
+    if (!agentUser) {
+
+      adminCommission =
+        Number((amount * 65) / 100);
+
+      creatorAmount =
+        Number((amount * 35) / 100);
+
+    }
+
+    // ====================================
+    // AGENT EXISTS
+    // AGENT = 50%
+    // ADMIN = 15%
+    // CREATOR = 35%
+    // ====================================
+
+    else {
+
+      agentCommission =
+        Number((amount * 50) / 100);
+
+      adminCommission =
+        Number((amount * 15) / 100);
+
+      creatorAmount =
+        Number((amount * 35) / 100);
+
+    }
+
+    // ==========================
+    // CREATE TIP
+    // ==========================
+    const tip = await MyTip.create({
+
+      sender_id,
+
+      token: amount,
+
+      type: type || "Tip",
+
+      msg,
+
+      myid,
+
+      adminCommission,
+
+      agentCommission,
+
+      creatorAmount,
+
+      date: new Date(),
+
+    });
+
+    /*
+    ====================================
+    WALLET UPDATE
+    ====================================
+    */
+
+    // ==========================
+    // SENDER WALLET MINUS
+    // ==========================
+    senderUser.wallet =
+      Number(senderUser.wallet || 0) - amount;
+
+    await senderUser.save();
+
+    // ==========================
+    // CREATOR WALLET ADD
+    // ==========================
+    receiverUser.wallet =
+      Number(receiverUser.wallet || 0) +
+      creatorAmount;
+
+    // creator stats
+    receiverUser.getdailyLimit =
+      Number(receiverUser.getdailyLimit || 0) +
+      amount;
+
+    // admin commission track
+    receiverUser.adminCommission =
+      Number(receiverUser.adminCommission || 0) +
+      adminCommission;
+
+    await receiverUser.save();
+
+    // ==========================
+    // AGENT WALLET ADD
+    // ==========================
+    if (agentUser) {
+
+      agentUser.wallet =
+        Number(agentUser.wallet || 0) +
+        agentCommission;
+
+      agentUser.agentCommission =
+        Number(agentUser.agentCommission || 0) +
+        agentCommission;
+
+      await agentUser.save();
+
+    }
+
+    // ==========================
+    // SUCCESS RESPONSE
+    // ==========================
+    return res.status(201).json({
+
+      success: true,
+
+      message:
+        "Token Submitted Successfully",
+
+      data: tip,
+
+      breakdown: {
+
+        total: amount,
+
+        adminCommission,
+
+        agentCommission,
+
+        creatorAmount,
+
+      },
+
+      senderWallet:
+        senderUser.wallet,
+
+      receiverWallet:
+        receiverUser.wallet,
+
+      agentWallet:
+        agentUser?.wallet || 0,
+
+    });
+
+  }
+
+  catch (error) {
+
+    console.log(
+      "SUBMIT TOKEN ERROR",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: error.message,
+
+    });
+
+  }
+
+};
 
 
 exports.submitPrivateRequest = async (req, res) => {
@@ -644,8 +802,13 @@ exports.completePrivateShow = async (req, res) => {
     }
 
     // 👤 Users
-    const senderUser = await User.findById(privateShow.sender_id);
-    const creatorUser = await User.findById(privateShow.creator_id);
+    const senderUser = await User.findById(
+      privateShow.sender_id
+    );
+
+    const creatorUser = await User.findById(
+      privateShow.creator_id
+    );
 
     if (!senderUser || !creatorUser) {
       return res.status(404).json({
@@ -654,73 +817,224 @@ exports.completePrivateShow = async (req, res) => {
       });
     }
 
-    // ⏱️ TIME CALCULATION
-    const startTime = new Date(privateShow.showStartTime).getTime();
+    /*
+    ==========================
+    🏢 AGENT / VENDOR CHECK
+    ==========================
+    */
+
+    let agentUser = null;
+
+    if (creatorUser.vendor_id) {
+      agentUser = await User.findById(
+        creatorUser.vendor_id
+      );
+    }
+
+    /*
+    ==========================
+    ⏱️ TIME CALCULATION
+    ==========================
+    */
+
+    const startTime = new Date(
+      privateShow.showStartTime
+    ).getTime();
+
     const endTime = Date.now();
 
-    const durationSeconds = Math.floor((endTime - startTime) / 1000);
-    const durationMinutes = Math.floor(durationSeconds / 60); // per minute billing
+    const durationSeconds = Math.floor(
+      (endTime - startTime) / 1000
+    );
 
-    // 💰 TOKEN CALCULATION
-    const tokenPerMin = Number(privateShow.token || 0);
-    const totalAmount = durationMinutes * tokenPerMin;
+    // ✅ CEIL USE
+    const durationMinutes = Math.ceil(
+      durationSeconds / 60
+    );
 
-    // 💸 WALLET UPDATE
-    if (Number(senderUser.wallet) < totalAmount) {
+    /*
+    ==========================
+    💰 TOKEN CALCULATION
+    ==========================
+    */
+
+    const tokenPerMin = Number(
+      privateShow.token || 0
+    );
+
+    const totalAmount =
+      durationMinutes * tokenPerMin;
+
+    /*
+    ==========================
+    💸 WALLET CHECK
+    ==========================
+    */
+
+    if (
+      Number(senderUser.wallet) < totalAmount
+    ) {
       return res.status(400).json({
         success: false,
-        message: "User has insufficient balance for final deduction",
+        message:
+          "User has insufficient balance for final deduction",
       });
     }
 
-    // sender se deduct
-    senderUser.wallet = Number(senderUser.wallet) - totalAmount;
+    /*
+    ==========================
+    💰 COMMISSION LOGIC
+    ==========================
+    */
 
-    // creator ko 70%
-    const creatorShare = totalAmount * 0.7;
-    const adminCommission = totalAmount * 0.3;
+    let creatorShare = 0;
 
-    // ✅ creator earning (wallet)
-    creatorUser.wallet =
-      Number(creatorUser.wallet || 0) + creatorShare;
+    let adminCommission = 0;
 
-    // ✅ admin commission store (same user doc me)
-    creatorUser.adminCommission =
-      Number(creatorUser.adminCommission || 0) + adminCommission;
+    let agentCommission = 0;
 
-    creatorUser.getdailyLimit =
-      Number(creatorUser.getdailyLimit || 0) + totalAmount;
+    // ✅ AGENT EXISTS
+    if (agentUser) {
+
+      creatorShare = Math.ceil(
+        (totalAmount * 35) / 100
+      );
+
+      agentCommission = Math.ceil(
+        (totalAmount * 50) / 100
+      );
+
+      adminCommission = Math.ceil(
+        (totalAmount * 15) / 100
+      );
+
+    } else {
+
+      // ✅ NO AGENT
+
+      agentCommission = 0;
+
+      creatorShare = Math.ceil(
+        (totalAmount * 35) / 100
+      );
+
+      adminCommission = Math.ceil(
+        (totalAmount * 65) / 100
+      );
+    }
+
+    /*
+    ==========================
+    💸 WALLET UPDATE
+    ==========================
+    */
+
+    // sender deduct
+    senderUser.wallet =
+      Number(senderUser.wallet) - totalAmount;
 
     await senderUser.save();
+
+    // creator wallet
+    creatorUser.wallet =
+      Number(creatorUser.wallet || 0) +
+      creatorShare;
+
+    // creator stats
+    creatorUser.getdailyLimit =
+      Number(
+        creatorUser.getdailyLimit || 0
+      ) + totalAmount;
+
+    // admin commission store
+    creatorUser.adminCommission =
+      Number(
+        creatorUser.adminCommission || 0
+      ) + adminCommission;
+
+    creatorUser.agentCommission =
+      Number(
+        creatorUser.agentCommission || 0
+      ) + agentCommission;
+
     await creatorUser.save();
 
-    // 📝 UPDATE PRIVATE SHOW
+    /*
+    ==========================
+    🏢 AGENT WALLET UPDATE
+    ==========================
+    */
+
+    if (agentUser) {
+
+      agentUser.wallet =
+        Number(agentUser.wallet || 0) +
+        agentCommission;
+
+      await agentUser.save();
+    }
+
+    /*
+    ==========================
+    📝 UPDATE PRIVATE SHOW
+    ==========================
+    */
+
     privateShow.status = "Completed";
-    privateShow.showEndTime = new Date();
-    privateShow.duration = durationSeconds;
+
+    privateShow.showEndTime =
+      new Date();
+
+    privateShow.duration =
+      durationSeconds;
+
+    privateShow.totalAmount =
+      totalAmount;
+
+    privateShow.creatorShare =
+      creatorShare;
+
+    privateShow.adminCommission =
+      adminCommission;
+
+    privateShow.agentCommission =
+      agentCommission;
 
     await privateShow.save();
 
     /*
     ==========================
-    🔴 AGORA CLEANUP (OPTIONAL)
+    🧾 TIP ENTRY
     ==========================
     */
-    // NOTE: Agora channels auto-expire hote hain
-    // direct destroy API nahi hota
-    // tum yaha future ke liye log save kar sakte ho
 
     const tip = await MyTip.create({
-        sender_id: privateShow.sender_id,
-        token: totalAmount,
-        type: "Private",
-        msg: "Private Show",
-        myid: privateShow.creator_id,
-        adminCommission: adminCommission,
-        creatorAmount: creatorShare,
-        date: new Date(),
-      });
+      sender_id: privateShow.sender_id,
 
+      token: totalAmount,
+
+      type: "Private",
+
+      msg: "Private Show",
+
+      myid: privateShow.creator_id,
+
+      adminCommission,
+
+      creatorAmount: creatorShare,
+
+      agentCommission,
+
+      agent_id: agentUser?._id || null,
+
+      date: new Date(),
+    });
+
+    /*
+    ==========================
+    🔴 AGORA CLEANUP
+    ==========================
+    */
 
     console.log("Agora cleanup:", {
       channel: privateShow.channelName,
@@ -730,21 +1044,30 @@ exports.completePrivateShow = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Private show completed successfully",
+      message:
+        "Private show completed successfully",
+
       data: privateShow,
+
       summary: {
         durationSeconds,
         durationMinutes,
         totalAmount,
         creatorShare,
         adminCommission,
+        agentCommission,
         senderWallet: senderUser.wallet,
         creatorWallet: creatorUser.wallet,
+        agentWallet: agentUser?.wallet || 0,
       },
     });
 
   } catch (error) {
-    console.log("Complete Private Show Error:", error);
+
+    console.log(
+      "Complete Private Show Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -753,95 +1076,93 @@ exports.completePrivateShow = async (req, res) => {
   }
 };
 
-// const { MyTip } = require("../models/menuMyTip");
-
 exports.getSubmittedTokens = async (req, res) => {
-  try {
+    try {
 
-    const { myid } = req.params;
+      const { myid } = req.params;
 
-    const data = await MyTip.aggregate([
+      const data = await MyTip.aggregate([
 
-      {
-        $match: {
-          myid: myid
-        }
-      },
+        {
+          $match: {
+            myid: myid
+          }
+        },
 
-      {
-        $lookup: {
-          from: "users",
-          let: { senderId: "$sender_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: [
-                    "$_id",
-                    {
-                      $convert: {
-                        input: "$$senderId",
-                        to: "objectId",
-                        onError: null,
-                        onNull: null
+        {
+          $lookup: {
+            from: "users",
+            let: { senderId: "$sender_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: [
+                      "$_id",
+                      {
+                        $convert: {
+                          input: "$$senderId",
+                          to: "objectId",
+                          onError: null,
+                          onNull: null
+                        }
                       }
-                    }
-                  ]
+                    ]
+                  }
+                }
+              },
+              {
+                $project: {
+                  name: 1
                 }
               }
-            },
-            {
-              $project: {
-                name: 1
-              }
-            }
-          ],
-          as: "sender"
+            ],
+            as: "sender"
+          }
+        },
+
+        {
+          $unwind: {
+            path: "$sender",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+
+        {
+          $addFields: {
+            sender_name: "$sender.name"
+          }
+        },
+
+        {
+          $project: {
+            sender: 0
+          }
+        },
+
+        {
+          $sort: {
+            date: -1
+          }
         }
-      },
 
-      {
-        $unwind: {
-          path: "$sender",
-          preserveNullAndEmptyArrays: true
-        }
-      },
+      ]);
 
-      {
-        $addFields: {
-          sender_name: "$sender.name"
-        }
-      },
+      res.status(200).json({
+        success: true,
+        data
+      });
 
-      {
-        $project: {
-          sender: 0
-        }
-      },
+    } catch (error) {
 
-      {
-        $sort: {
-          date: -1
-        }
-      }
+      console.log(error);
 
-    ]);
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
 
-    res.status(200).json({
-      success: true,
-      data
-    });
-
-  } catch (error) {
-
-    console.log(error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-
-  }
+    }
 };
 
 exports.getTipTransection = async (req, res) => {
@@ -1059,7 +1380,7 @@ exports.getRechargeHistory = async (req, res) => {
 
 exports.withdrawalRequest = async (req, res) => {
   try {
-    const { user_id, amount } = req.body;
+    const { user_id, amount, bank_id } = req.body;
 
     // ✅ validation
     if (!user_id || !amount) {
@@ -1110,6 +1431,7 @@ exports.withdrawalRequest = async (req, res) => {
       type: "Debit",
       status: "Pending", // admin approve karega
       payment_id,
+      bank_id,
       date: new Date(),
     });
 
@@ -1132,6 +1454,7 @@ exports.withdrawalRequest = async (req, res) => {
 
 exports.getWithdrawalHistory = async (req, res) => {
   try {
+
     const { user_id } = req.params;
 
     if (!user_id) {
@@ -1143,7 +1466,7 @@ exports.getWithdrawalHistory = async (req, res) => {
 
     /*
     =========================
-    USER FETCH (IMPORTANT FIX)
+    USER FETCH
     =========================
     */
     const user = await User.findById(user_id).select(
@@ -1163,129 +1486,225 @@ exports.getWithdrawalHistory = async (req, res) => {
     =========================
     */
     const data = await Withdrawal.aggregate([
+
       {
         $match: {
           user_id: user_id,
         },
       },
+
+      /*
+      =========================
+      USER JOIN
+      =========================
+      */
+      {
+        $addFields: {
+          userObjectId: {
+            $toObjectId: "$user_id"
+          }
+        }
+      },
+
       {
         $lookup: {
           from: "users",
-          let: { userId: "$user_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: [
-                    "$_id",
-                    {
-                      $convert: {
-                        input: "$$userId",
-                        to: "objectId",
-                        onError: null,
-                        onNull: null,
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                name: 1,
-                email: 1,
-                profileImage: 1,
-              },
-            },
-          ],
+
+          localField: "userObjectId",
+
+          foreignField: "_id",
+
           as: "user",
         },
       },
+
       {
         $unwind: {
           path: "$user",
           preserveNullAndEmptyArrays: true,
         },
       },
+
+      /*
+      =========================
+      BANK JOIN
+      =========================
+      */
+
       {
         $addFields: {
-          user_name: "$user.name",
-          user_email: "$user.email",
-          user_image: "$user.profileImage",
+          bankObjectId: {
+            $toObjectId: "$bank_id"
+          }
+        }
+      },
+
+      {
+        $lookup: {
+          from: "bankaccounts",
+
+          localField: "bankObjectId",
+
+          foreignField: "_id",
+
+          as: "bank",
         },
       },
+
+      {
+        $unwind: {
+          path: "$bank",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      /*
+      =========================
+      FINAL FIELDS
+      =========================
+      */
+      {
+        $addFields: {
+
+          // USER
+          user_name: "$user.name",
+
+          user_email: "$user.email",
+
+          user_image: "$user.profileImage",
+
+          // BANK
+          bank_name: "$bank.bank_name",
+
+          account_holder_name:
+            "$bank.account_holder_name",
+
+          account_number:
+            "$bank.account_number",
+
+          ifsc_code:
+            "$bank.ifsc_code",
+
+          upi_id:
+            "$bank.upi_id",
+
+          bank_status:
+            "$bank.status",
+        },
+      },
+
+      /*
+      =========================
+      REMOVE EXTRA
+      =========================
+      */
       {
         $project: {
           user: 0,
+          bank: 0,
+          userObjectId: 0,
+          bankObjectId: 0,
         },
       },
+
+      /*
+      =========================
+      SORT
+      =========================
+      */
       {
         $sort: {
           date: -1,
         },
       },
+
     ]);
 
     /*
     =========================
-    STATS CALCULATION (SAFE)
+    STATS
     =========================
     */
 
     let totalWithdrawal = 0;
+
     let todayWithdrawal = 0;
 
     const today = new Date();
 
     data.forEach((tx) => {
+
       const amount = Number(tx.amount || 0);
+
       totalWithdrawal += amount;
 
       const d = new Date(tx.date);
+
       if (
         d.getDate() === today.getDate() &&
         d.getMonth() === today.getMonth() &&
         d.getFullYear() === today.getFullYear()
       ) {
+
         todayWithdrawal += amount;
+
       }
+
     });
 
     /*
     =========================
-    FINAL SAFE STATS
+    FINAL STATS
     =========================
     */
 
     const wallet = user.wallet || 0;
-    const todayEarning = user.getdailyLimit || 0;
+
+    const todayEarning =
+      user.getdailyLimit || 0;
 
     const availableAmount = wallet;
 
-    // safe calculation
-    const totalEarning = Number(wallet) + Number(totalWithdrawal);
+    const totalEarning =
+      Number(wallet) +
+      Number(totalWithdrawal);
 
-    res.status(200).json({
+    return res.status(200).json({
+
       success: true,
+
       data: data || [],
 
       stats: {
+
         wallet,
+
         availableAmount,
+
         totalWithdrawal,
+
         todayWithdrawal,
+
         todayEarning,
+
         totalEarning,
+
       },
+
     });
 
   } catch (error) {
-    console.log(error);
 
-    res.status(500).json({
+    console.log(
+      "Get Withdrawal History Error:",
+      error
+    );
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
@@ -1298,162 +1717,284 @@ exports.getAdminWithdrawalHistory = async (req, res) => {
     =========================
     */
     const data = await Withdrawal.aggregate([
+
+      /*
+      =========================
+      USER OBJECT ID
+      =========================
+      */
+      {
+        $addFields: {
+          userObjectId: {
+            $toObjectId: "$user_id"
+          }
+        }
+      },
+
+      /*
+      =========================
+      USER JOIN
+      =========================
+      */
       {
         $lookup: {
           from: "users",
-          let: { userId: "$user_id" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: [
-                    "$_id",
-                    {
-                      $convert: {
-                        input: "$$userId",
-                        to: "objectId",
-                        onError: null,
-                        onNull: null,
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                name: 1,
-                email: 1,
-                profileImage: 1,
-                wallet: 1,            // ✅ ADD THIS
-              },
-            },
-          ],
+
+          localField: "userObjectId",
+
+          foreignField: "_id",
+
           as: "user",
         },
       },
+
       {
         $unwind: {
           path: "$user",
           preserveNullAndEmptyArrays: true,
         },
       },
+
+      /*
+      =========================
+      BANK OBJECT ID
+      =========================
+      */
       {
         $addFields: {
-          user_name: "$user.name",
-          user_email: "$user.email",
-          user_wallet: "$user.wallet", // ✅ NOW WORKING
-          user_image: "$user.profileImage",
+          bankObjectId: {
+            $toObjectId: "$bank_id"
+          }
+        }
+      },
+
+      /*
+      =========================
+      BANK JOIN
+      =========================
+      */
+      {
+        $lookup: {
+          from: "bankaccounts",
+
+          localField: "bankObjectId",
+
+          foreignField: "_id",
+
+          as: "bank",
         },
       },
+
+      {
+        $unwind: {
+          path: "$bank",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      /*
+      =========================
+      FINAL FIELDS
+      =========================
+      */
+      {
+        $addFields: {
+
+          // USER
+          user_name: "$user.name",
+
+          user_email: "$user.email",
+
+          user_wallet: "$user.wallet",
+
+          user_image: "$user.profileImage",
+
+          // BANK
+          bank_name: "$bank.bank_name",
+
+          account_holder_name:
+            "$bank.account_holder_name",
+
+          account_number:
+            "$bank.account_number",
+
+          ifsc_code:
+            "$bank.ifsc_code",
+
+          upi_id:
+            "$bank.upi_id",
+
+          bank_status:
+            "$bank.status",
+        },
+      },
+
+      /*
+      =========================
+      REMOVE EXTRA
+      =========================
+      */
       {
         $project: {
           user: 0,
+          bank: 0,
+          userObjectId: 0,
+          bankObjectId: 0,
         },
       },
+
+      /*
+      =========================
+      SORT
+      =========================
+      */
       {
         $sort: {
           date: -1,
         },
       },
+
     ]);
 
     /*
     =========================
-    🔥 WITHDRAWAL STATS
+    WITHDRAWAL STATS
     =========================
     */
 
     let totalWithdrawal = 0;
+
     let todayWithdrawal = 0;
+
     let pendingCount = 0;
+
     let completedAmount = 0;
+
     let pendingAmount = 0;
 
     const today = new Date();
 
     data.forEach((tx) => {
+
       const amount = Number(tx.amount || 0);
 
       totalWithdrawal += amount;
 
       const d = new Date(tx.date);
+
       if (
         d.getDate() === today.getDate() &&
         d.getMonth() === today.getMonth() &&
         d.getFullYear() === today.getFullYear()
       ) {
+
         todayWithdrawal += amount;
+
       }
 
       if (tx.status === "Pending") {
+
         pendingCount += 1;
+
         pendingAmount += amount;
+
       }
 
-      if (tx.status === "Success" || tx.status === "Completed") {
+      if (
+        tx.status === "Success" ||
+        tx.status === "Completed"
+      ) {
+
         completedAmount += amount;
+
       }
+
     });
 
     /*
     =========================
-    👥 USER TABLE STATS
+    USER TABLE STATS
     =========================
     */
-    const users = await User.find().select("adminCommission wallet");
+    const users = await User.find().select(
+      "adminCommission wallet"
+    );
 
     let totalCommission = 0;
+
     let totalWallet = 0;
 
     users.forEach((u) => {
-      totalCommission += Number(u.adminCommission || 0);
-      totalWallet += Number(u.wallet || 0); // ✅ ADD THIS
+
+      totalCommission += Number(
+        u.adminCommission || 0
+      );
+
+      totalWallet += Number(
+        u.wallet || 0
+      );
+
     });
 
     /*
     =========================
-    💰 FINAL CALCULATIONS
+    FINAL CALCULATIONS
     =========================
     */
 
     const totalPayments = data.length;
 
-    // ✅ FIXED REVENUE
-    const totalRevenue = totalWallet + totalCommission;
+    const totalRevenue =
+      totalWallet + totalCommission;
 
     /*
     =========================
     RESPONSE
     =========================
     */
-    res.status(200).json({
+
+    return res.status(200).json({
+
       success: true,
+
       data: data || [],
 
       stats: {
+
         totalWithdrawal,
+
         todayWithdrawal,
 
         totalPayments,
+
         pendingPayments: pendingCount,
 
         completedAmount,
+
         pendingAmount,
 
         totalCommission,
-        totalWallet,       // ✅ EXTRA FIELD (useful frontend me)
-        totalRevenue,      // ✅ CORRECTED
+
+        totalWallet,
+
+        totalRevenue,
+
       },
+
     });
 
   } catch (error) {
-    console.log(error);
 
-    res.status(500).json({
+    console.log(
+      "Admin Withdrawal History Error:",
+      error
+    );
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
@@ -1742,3 +2283,387 @@ exports.admindashboard = async (req, res) => {
 };
 
 
+exports.createVipAccess = async (req, res) => {
+  try {
+
+    const { user_id, creator_id } = req.body;
+
+    // =========================
+    // VALIDATION
+    // =========================
+    if (!user_id || !creator_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id and creator_id are required",
+      });
+    }
+
+    // =========================
+    // FIND USER
+    // =========================
+    const user = await User.findById(user_id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // =========================
+    // FIND CREATOR
+    // =========================
+    const creator = await User.findById(creator_id);
+
+    if (!creator) {
+      return res.status(404).json({
+        success: false,
+        message: "Creator not found",
+      });
+    }
+
+    // =========================
+    // TOKEN AMOUNT
+    // =========================
+    const tokenAmount = 20;
+
+    // =========================
+    // WALLET CHECK
+    // =========================
+    if (Number(user.wallet) < tokenAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+      });
+    }
+
+    // =========================
+    // CHECK EXISTING VIP ACCESS
+    // =========================
+    const alreadyVip = await VipAccess.findOne({
+      user_id,
+      creator_id,
+      expire_date: { $gt: new Date() },
+    });
+
+    if (alreadyVip) {
+      return res.status(400).json({
+        success: false,
+        message: "VIP Access already active",
+      });
+    }
+
+    // =========================
+    // DATES
+    // =========================
+    const added_date = new Date();
+
+    // 30 days VIP
+    const expire_date = new Date();
+    expire_date.setDate(expire_date.getDate() + 30);
+
+    // =========================
+    // CREATE VIP ACCESS
+    // =========================
+    const vip = await VipAccess.create({
+      user_id,
+      creator_id,
+      token: tokenAmount,
+      added_date,
+      expire_date,
+    });
+
+    // =========================
+    // DEDUCT USER WALLET
+    // =========================
+    user.wallet = Number(user.wallet) - tokenAmount;
+    await user.save();
+
+    // =========================
+    // RESPONSE
+    // =========================
+    res.status(201).json({
+      success: true,
+      message: "VIP Access Purchased Successfully",
+      data: vip,
+      deductedToken: tokenAmount,
+      remainingWallet: user.wallet,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+
+exports.addBankAccount = async (req, res) => {
+  try {
+
+    const {
+      user_id,
+      account_holder_name,
+      bank_name,
+      account_number,
+      ifsc_code,
+      upi_id
+    } = req.body;
+
+    /*
+    ==========================
+    VALIDATION
+    ==========================
+    */
+
+    if (
+      !user_id ||
+      !account_holder_name ||
+      !bank_name ||
+      !account_number ||
+      !ifsc_code
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields are mandatory",
+      });
+    }
+
+    /*
+    ==========================
+    CHECK USER
+    ==========================
+    */
+
+    const user = await User.findById(user_id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    /*
+    ==========================
+    DUPLICATE ACCOUNT CHECK
+    ==========================
+    */
+
+    const alreadyExist = await BankAccount.findOne({
+      user_id,
+      account_number,
+    });
+
+    if (alreadyExist) {
+      return res.status(400).json({
+        success: false,
+        message: "Bank account already added",
+      });
+    }
+
+    /*
+    ==========================
+    OLD ACCOUNTS DEACTIVE
+    ==========================
+    */
+
+    await BankAccount.updateMany(
+      { user_id },
+      {
+        $set: {
+          status: 0
+        }
+      }
+    );
+
+    /*
+    ==========================
+    CREATE NEW ACTIVE ACCOUNT
+    ==========================
+    */
+
+    const bank = await BankAccount.create({
+      user_id,
+
+      account_holder_name,
+
+      bank_name,
+
+      account_number,
+
+      ifsc_code,
+
+      upi_id: upi_id || "",
+
+      status: 1 // active
+    });
+
+    /*
+    ==========================
+    RESPONSE
+    ==========================
+    */
+
+    return res.status(201).json({
+      success: true,
+      message: "Bank account added successfully",
+      data: bank,
+    });
+
+  } catch (error) {
+
+    console.log("Add Bank Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.getBankAccounts = async (req, res) => {
+  try {
+
+    const { user_id } = req.params;
+
+    /*
+    ==========================
+    VALIDATION
+    ==========================
+    */
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    /*
+    ==========================
+    CHECK USER
+    ==========================
+    */
+
+    const user = await User.findById(user_id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    /*
+    ==========================
+    FETCH BANK ACCOUNTS
+    ==========================
+    */
+
+    const bankAccounts = await BankAccount.find({
+      user_id,
+      
+    }).sort({ createdAt: -1 });
+
+    /*
+    ==========================
+    RESPONSE
+    ==========================
+    */
+
+    return res.status(200).json({
+      success: true,
+      message: "Bank accounts fetched successfully",
+      data: bankAccounts,
+    });
+
+  } catch (error) {
+
+    console.log(
+      "Fetch Bank Accounts Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.updateBankStatus = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    const { status, user_id } = req.body;
+
+    const bank = await BankAccount.findById(id);
+
+    if (!bank) {
+      return res.status(404).json({
+        success: false,
+        message: "Bank account not found",
+      });
+    }
+
+    // ACTIVE KARNE PE
+    if (Number(status) === 1) {
+
+      // sabko deactive
+      await BankAccount.updateMany(
+        { user_id },
+        {
+          $set: {
+            status: 0
+          }
+        }
+      );
+
+      // selected active
+      bank.status = 1;
+
+    } else {
+
+      // check minimum 1 active
+      const activeCount =
+        await BankAccount.countDocuments({
+          user_id,
+          status: 1
+        });
+
+      if (
+        activeCount <= 1 &&
+        bank.status === 1
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "At least one active bank account required",
+        });
+      }
+
+      bank.status = 0;
+    }
+
+    await bank.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: bank,
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

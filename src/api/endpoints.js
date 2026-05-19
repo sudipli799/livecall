@@ -21,6 +21,10 @@ const ENDPOINTS = {
   PRIVATEREQUEST: "/private-requests",
   STARTPRIVATESHOW: "/start-private-show",
   ENDSHOW:"/complete-private-show",
+  VIPACCESS:"/vip-access",
+  ADDBANKACCOUNT:"/addbank",
+  BANKLIST:"/banklist",
+  UPDATEBANKSTATUS:"/update-bank-status",
 
   CREATORESHOWREQUEST: "/creator-private-requests",
   ADMINREQUEST: "/admin-private-requests",

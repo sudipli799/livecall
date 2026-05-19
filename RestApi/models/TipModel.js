@@ -207,6 +207,11 @@ const withdrawalSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    bank_id: {
+      type: String,
+      default: "",
+    },
     
     date: {
       type: Date,
@@ -246,6 +251,89 @@ const settingSchema = new mongoose.Schema(
 );
 
 
+const vipAccessSchema = new mongoose.Schema({
+
+  user_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+
+  creator_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+
+  token: {
+    type: Number,
+    default: 20,
+  },
+
+  added_date: {
+    type: Date,
+    default: Date.now,
+  },
+
+  expire_date: {
+    type: Date,
+    required: true,
+  },
+
+}, { timestamps: true });
+
+// module.exports = mongoose.model("VipAccess", vipAccessSchema);
+
+const bankAccountSchema = new mongoose.Schema(
+  {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    account_holder_name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    bank_name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    account_number: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    ifsc_code: {
+      type: String,
+      required: true,
+      trim: true,
+      uppercase: true,
+    },
+
+    upi_id: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    status: {
+      type: Number,
+      default: 1, // 1 = active
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+
 
 
 
@@ -256,6 +344,8 @@ const PrivateShow = mongoose.model("PrivateShow", PrivateShowSchema);
 const Wallet = mongoose.model("Wallet", walletSchema);
 const Withdrawal = mongoose.model("Withdrawal", withdrawalSchema);
 const Setting = mongoose.model("Setting", settingSchema);
+const VipAccess = mongoose.model("VipAccess", vipAccessSchema);
+const BankAccount = mongoose.model("BankAccount", bankAccountSchema);
 
 module.exports = {
   Menu,
@@ -264,4 +354,6 @@ module.exports = {
   Wallet,
   Withdrawal,
   Setting,
+  VipAccess,
+  BankAccount,
 };

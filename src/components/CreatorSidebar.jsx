@@ -13,6 +13,7 @@ export default function CreatorSidebar() {
     { icon: "🔒", label: "Private Request", path: "/creator/private-request" },
     { icon: "💰", label: "Earnings", path: "/creator/earning" },
     { icon: "👥", label: "Withdrawal", path: "/creator/withdrawal" },
+    { icon: "⚙️", label: "Settings", path: "/creator/settings" },
   ];
 
   // ✅ ROLE CHECK

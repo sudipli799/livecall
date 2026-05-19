@@ -26,7 +26,7 @@ export default function AgentUsers() {
     try {
       setLoading(true);
 
-      const res = await axiosInstance.get(`${ENDPOINTS.AGENTUSER}/creator/${user.username}`);
+      const res = await axiosInstance.get(`${ENDPOINTS.AGENTUSER}/creator/${user._id}`);
 
       if (res?.data) {
         setAllUser(res.data.users || []);

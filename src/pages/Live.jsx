@@ -506,6 +506,11 @@ const handleWalletRecharge = async () => {
     return;
   }
 
+  if (rechargeAmount > 500) {
+    alert("Maximum recharge limit is 500 tokens");
+    return;
+  }
+
   // 🔥 Razorpay script load
   const resScript = await loadRazorpayScript();
 
@@ -1517,7 +1522,7 @@ useEffect(() => {
 
                 <div className="d-flex gap-2 flex-wrap">
 
-                  {[100, 200, 500, 1000].map((amt) => (
+                  {[50, 100, 200, 500].map((amt) => (
 
                     <button
                       key={amt}
